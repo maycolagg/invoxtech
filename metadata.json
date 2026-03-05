@@ -1,0 +1,5 @@
+{
+  "name": "LavaJato Pro",
+  "description": "Sistema profissional de agendamento para estéticas automotivas e lava-jatos.",
+  "requestFramePermissions": ["geolocation"]
+}
