@@ -27,7 +27,6 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
     { id: 'facebook', label: 'Facebook', icon: <Facebook size={18} />, placeholder: 'facebook.com/pagina' },
     { id: 'tiktok', label: 'TikTok', icon: <Sparkles size={18} />, placeholder: '@usuario' },
     { id: 'youtube', label: 'YouTube', icon: <Youtube size={18} />, placeholder: 'youtube.com/@canal' },
-    { id: 'Outro', label: 'Outro', icon: <Outro size={18} />, placeholder: 'www.seulink.com' },
   ];
 
   useEffect(() => {
