@@ -20,6 +20,7 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
   const [socialLinks, setSocialLinks] = useState<{ type: string, value: string }[]>([]);
   const [businessHours, setBusinessHours] = useState({ open: '08:00', close: '18:00' });
   const [showSocials, setShowSocials] = useState(true);
+  const [companySettings, setCompanySettings] = useState({ company_name: 'Invox Tech', logo_url: '/logo.png' });
 
   const socialOptions = [
     { id: 'whatsapp', label: 'WhatsApp', icon: <MessageCircle size={18} />, placeholder: '11999999999' },
@@ -58,6 +59,12 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
         if (data.business_hours) {
           setBusinessHours(JSON.parse(data.business_hours));
         }
+      });
+
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data) setCompanySettings(data);
       });
   }, [shopId]);
 
@@ -136,10 +143,10 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
       {/* Sidebar */}
       <aside className="w-64 border-r p-6 flex flex-col gap-8 transition-all duration-500 bg-white dark:bg-[#141417] border-zinc-200 dark:border-white/5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-zinc-900 dark:bg-emerald-600">
-            <LayoutDashboard size={20} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-zinc-900 dark:bg-emerald-600 overflow-hidden">
+            <img src={companySettings.logo_url} alt={companySettings.company_name} className="w-full h-full object-cover" />
           </div>
-          <span className="font-black text-xl tracking-tight dark:text-white">Estética Pro</span>
+          <span className="font-black text-xl tracking-tight dark:text-white">{companySettings.company_name}</span>
         </div>
 
         <nav className="space-y-2">

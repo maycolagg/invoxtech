@@ -21,6 +21,7 @@ export default function App() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(false);
   const [companyName, setCompanyName] = useState('Invox Tech');
+  const [logoUrl, setLogoUrl] = useState('/logo.png');
   const [isBusiness, setIsBusiness] = useState(false);
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function App() {
       .then(res => res.json())
       .then(data => {
         if (data.company_name) setCompanyName(data.company_name);
+        if (data.logo_url) setLogoUrl(data.logo_url);
       });
   }, []);
 
@@ -129,8 +131,8 @@ export default function App() {
               theme === 'dark' ? "bg-[#141417] border border-white/5" : "bg-zinc-900"
             )}>
               <img 
-                src="/logo.png" 
-                alt="Invox Tech" 
+                src={logoUrl} 
+                alt={companyName} 
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
@@ -219,7 +221,10 @@ export default function App() {
 
       <main className="pt-20">
         {view === 'landing' && (
-          <LandingPage onSelectShop={(id) => { setSelectedShopId(id); setView('booking'); }} />
+          <LandingPage 
+            onSelectShop={(id) => { setSelectedShopId(id); setView('booking'); }} 
+            companyName={companyName}
+          />
         )}
 
         {view === 'booking' && selectedShopId && (
@@ -458,8 +463,8 @@ export default function App() {
               theme === 'dark' ? "bg-[#141417] border border-white/5" : "bg-zinc-900"
             )}>
               <img 
-                src="/logo.png" 
-                alt="Invox Tech" 
+                src={logoUrl} 
+                alt={companyName} 
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
@@ -470,13 +475,13 @@ export default function App() {
             <span className={cn(
               "font-black tracking-tighter",
               theme === 'dark' ? "text-white" : "text-zinc-900"
-            )}><a href="https://www.instagram.com/invoxtech">{companyName}</a></span>
+            )}>{companyName}</span>
           </div>
-          <p className="text-zinc-400 text-sm font-medium">© 2026 <a href="https://www.instagram.com/invoxtech">{companyName}</a>. Todos os direitos reservados.</p>
+          <p className="text-zinc-400 text-sm font-medium">© 2026 {companyName}. Todos os direitos reservados.</p>
           <div className="flex gap-6 text-sm font-bold text-zinc-500">
             <a href="#" className="hover:text-emerald-500 transition-colors">Termos</a>
             <a href="#" className="hover:text-emerald-500 transition-colors">Privacidade</a>
-            <a href="wa.me/5535998223765" className="hover:text-emerald-500 transition-colors">Suporte</a>
+            <a href="#" className="hover:text-emerald-500 transition-colors">Suporte</a>
           </div>
         </div>
       </footer>

@@ -130,6 +130,19 @@ async function startServer() {
     res.json({ success: true, message: "Senha atualizada com sucesso!" });
   });
 
+  app.get("/api/auth/check-user", async (req, res) => {
+    const { email, cpf } = req.query;
+    if (!email && !cpf) return res.json({ exists: false });
+
+    const { data: user } = await supabase
+      .from("users")
+      .select("id")
+      .or(`email.eq.${email},cpf.eq.${cpf}`)
+      .maybeSingle();
+
+    res.json({ exists: !!user });
+  });
+
   // Shops
   app.get("/api/shops", async (req, res) => {
     const { data: shops, error } = await supabase.from("shops").select("*");
@@ -235,7 +248,7 @@ async function startServer() {
     let { 
       shop_id, service_id, customer_id, customer_name, customer_email, 
       customer_phone, customer_cpf, booking_date, start_time, end_time, 
-      payment_method, total_price 
+      payment_method, total_price, password 
     } = req.body;
 
     // Verificação de conta existente por CPF ou Email para evitar inconstância
@@ -253,6 +266,24 @@ async function startServer() {
         customer_email = existingUser.email;
         customer_phone = existingUser.phone || customer_phone;
         customer_cpf = existingUser.cpf || customer_cpf;
+      } else if (password) {
+        // Se não existe e passou senha, criamos a conta automaticamente
+        const { data: newUser } = await supabase
+          .from("users")
+          .insert([{ 
+            name: customer_name, 
+            email: customer_email, 
+            phone: customer_phone, 
+            cpf: customer_cpf, 
+            password, 
+            role: 'customer' 
+          }])
+          .select()
+          .single();
+        
+        if (newUser) {
+          customer_id = newUser.id;
+        }
       }
     }
 

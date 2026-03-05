@@ -19,7 +19,7 @@ export default function SuperAdminDashboard() {
   const [users, setUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedShopId, setSelectedShopId] = useState<number | null>(null);
-  const [settings, setSettings] = useState<any>({ n8n_webhook_url: '', company_name: 'Invox Tech' });
+  const [settings, setSettings] = useState<any>({ n8n_webhook_url: '', company_name: 'Invox Tech', logo_url: '/logo.png' });
 
   const fetchData = () => {
     fetch('/api/analytics/global')
@@ -61,9 +61,14 @@ export default function SuperAdminDashboard() {
   return (
     <div className="space-y-8 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <h1 className="text-4xl font-black tracking-tight dark:text-white">Painel Master</h1>
-          <p className="text-zinc-500 mt-1">Visão geral de todas as estéticas e faturamento global</p>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-zinc-900 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
+            <img src={settings.logo_url} alt={settings.company_name} className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-black tracking-tight dark:text-white">Painel Master</h1>
+            <p className="text-zinc-500 mt-1">Visão geral de todas as estéticas e faturamento global</p>
+          </div>
         </div>
         <div className="p-1.5 rounded-2xl flex gap-1 bg-zinc-100 dark:bg-[#141417] border border-zinc-200 dark:border-white/5">
           <button 
@@ -410,6 +415,17 @@ export default function SuperAdminDashboard() {
                 value={settings.company_name}
                 onChange={(e) => setSettings({ ...settings, company_name: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">URL da Logo (PNG/SVG)</label>
+              <input 
+                type="text" 
+                className="w-full p-5 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-100 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                placeholder="https://link-da-sua-logo.com/logo.png"
+                value={settings.logo_url}
+                onChange={(e) => setSettings({ ...settings, logo_url: e.target.value })}
+              />
+              <p className="text-xs text-zinc-400 mt-2">Você pode usar um link externo ou o caminho "/logo.png" se subir o arquivo.</p>
             </div>
           </div>
           <button 

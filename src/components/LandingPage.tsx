@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { cn, type Shop } from '../types';
 
-export default function LandingPage({ onSelectShop }: { onSelectShop: (id: number) => void }) {
+export default function LandingPage({ onSelectShop, companyName }: { onSelectShop: (id: number) => void, companyName: string }) {
   const [shops, setShops] = useState<Shop[]>([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
@@ -66,7 +66,7 @@ export default function LandingPage({ onSelectShop }: { onSelectShop: (id: numbe
             transition={{ delay: 0.2 }}
             className="max-w-2xl mx-auto text-xl text-zinc-500 dark:text-zinc-400 font-medium"
           >
-            Descubra e agende os melhores serviços da sua região. De estética automotiva a lanchonetes, a Invox conecta você ao que há de melhor.
+            Descubra e agende os melhores serviços da sua região. De estética automotiva a lanchonetes, a {companyName} conecta você ao que há de melhor.
           </motion.p>
 
           {/* Search Bar */}
@@ -189,7 +189,7 @@ export default function LandingPage({ onSelectShop }: { onSelectShop: (id: numbe
             <div className="space-y-6">
               <h2 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
                 Por que escolher <br />
-                <span className="text-emerald-500">a Invox Tech?</span>
+                <span className="text-emerald-500">{companyName}?</span>
               </h2>
               <p className="text-zinc-400 text-xl font-medium">
                 Simplificamos a conexão entre você e os melhores estabelecimentos da sua cidade.

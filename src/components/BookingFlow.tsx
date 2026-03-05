@@ -22,8 +22,10 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
     email: '',
     phone: '',
     cpf: '',
-    paymentMethod: 'Dinheiro'
+    password: '',
+    paymentMethod: 'money'
   });
+  const [userExists, setUserExists] = useState<boolean | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [dateOffset, setDateOffset] = useState(0);
@@ -47,6 +49,19 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
     '08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'
   ];
 
+  useEffect(() => {
+    if (formData.email || formData.cpf) {
+      const timer = setTimeout(() => {
+        fetch(`/api/auth/check-user?email=${formData.email}&cpf=${formData.cpf}`)
+          .then(res => res.json())
+          .then(data => {
+            setUserExists(data.exists);
+          });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [formData.email, formData.cpf]);
+
   const handleBooking = async () => {
     if (!selectedService || !selectedTime) return;
     
@@ -58,6 +73,7 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
       customer_email: formData.email,
       customer_phone: formData.phone,
       customer_cpf: formData.cpf,
+      password: formData.password,
       booking_date: format(selectedDate, 'yyyy-MM-dd'),
       start_time: selectedTime,
       end_time: selectedTime, // Simple end time for now
@@ -417,6 +433,31 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
                     />
                   </div>
                 </div>
+                {userExists === true && (
+                  <div className="md:col-span-2 p-4 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center gap-3 text-blue-700 dark:text-blue-400 animate-in fade-in slide-in-from-top-2">
+                    <ShieldCheck size={20} />
+                    <p className="text-xs font-bold">Conta encontrada! Seu agendamento será vinculado ao seu perfil automaticamente.</p>
+                  </div>
+                )}
+                {userExists === false && (
+                  <div className="space-y-2 md:col-span-2 animate-in fade-in slide-in-from-top-2">
+                    <label className="text-xs font-bold text-emerald-500 uppercase flex items-center gap-2">
+                      <Sparkles size={14} /> Crie uma senha para sua nova conta
+                    </label>
+                    <div className="relative">
+                      <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                      <input 
+                        type="password" 
+                        placeholder="Sua senha segura"
+                        className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-emerald-50/30 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                        value={formData.password}
+                        onChange={e => setFormData({...formData, password: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-400">Com uma conta, você poderá gerenciar seus agendamentos e ganhar pontos.</p>
+                  </div>
+                )}
               </div>
             </div>
 
