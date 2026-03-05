@@ -46,11 +46,19 @@ export default function App() {
       setView('reset-password');
     }
 
+    const shopParam = params.get('shop');
+
     fetch('/api/shops')
       .then(res => res.json())
       .then(data => {
         setShops(data);
-        if (data.length > 0) {
+        if (shopParam) {
+          const shopId = parseInt(shopParam);
+          if (data.some((s: any) => s.id === shopId)) {
+            setSelectedShopId(shopId);
+            setView('booking');
+          }
+        } else if (data.length > 0) {
           setSelectedShopId(data[0].id);
         }
       });
@@ -186,7 +194,9 @@ export default function App() {
                       <span className="px-2 py-0.5 rounded-md bg-emerald-500 text-[10px] font-black text-white uppercase tracking-tighter">Master</span>
                     )}
                   </div>
-                  <p className="text-xs text-zinc-400 uppercase font-bold">{user.role === 'admin' ? 'Super Admin' : 'Dono de Estética'}</p>
+                  <p className="text-xs text-zinc-400 uppercase font-bold">
+                    {user.role === 'admin' ? 'Admin Master' : user.role === 'owner' ? 'Dono Estabelecimento' : 'Cliente'}
+                  </p>
                 </div>
                 <button 
                   onClick={() => { setUser(null); setView('booking'); }}
@@ -229,14 +239,22 @@ export default function App() {
         )}
 
         {view === 'reset-password' && (
-          <div className="max-w-md mx-auto px-6 py-12">
+          <div className="max-w-md mx-auto px-6 py-24">
             <div className={cn(
               "p-10 rounded-[40px] border shadow-2xl space-y-8 transition-all duration-500",
               theme === 'dark' ? "bg-[#141417] border-white/5" : "bg-white border-zinc-100"
             )}>
               <div className="text-center space-y-2">
+                <div className={cn(
+                  "w-16 h-16 rounded-2xl flex items-center justify-center text-white mx-auto mb-6",
+                  theme === 'dark' ? "bg-emerald-500/10 text-emerald-500" : "bg-zinc-900"
+                )}>
+                  <Lock size={32} />
+                </div>
                 <h2 className="text-3xl font-black tracking-tight">Nova Senha</h2>
-                <p className={theme === 'dark' ? "text-zinc-400" : "text-zinc-500"}>Digite sua nova senha abaixo</p>
+                <p className={theme === 'dark' ? "text-zinc-400" : "text-zinc-500"}>
+                  Recuperando acesso para: <span className="font-bold text-emerald-500">{resetEmail}</span>
+                </p>
               </div>
               <form onSubmit={async (e) => {
                 e.preventDefault();
@@ -248,13 +266,13 @@ export default function App() {
                   body: JSON.stringify({ email: resetEmail, newPassword })
                 });
                 if (res.ok) {
-                  toast.success('Senha atualizada!');
+                  toast.success('Senha atualizada com sucesso!');
                   setView('login');
                   setAuthMode('login');
                 }
               }} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Nova Senha</label>
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Digite sua nova senha</label>
                   <input name="password" type="password" required className={cn(
                     "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
                     theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
@@ -264,9 +282,15 @@ export default function App() {
                   "w-full py-5 rounded-2xl font-black text-lg shadow-xl transition-all mt-4",
                   theme === 'dark' ? "bg-emerald-600 text-white shadow-emerald-900/20 hover:bg-emerald-500" : "bg-zinc-900 text-white shadow-zinc-200 hover:bg-zinc-800"
                 )}>
-                  Atualizar Senha
+                  Salvar Nova Senha
                 </button>
               </form>
+              <button 
+                onClick={() => setView('login')}
+                className="w-full text-center text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors"
+              >
+                Voltar para o Login
+              </button>
             </div>
           </div>
         )}

@@ -321,7 +321,7 @@ export default function SuperAdminDashboard() {
                         u.role === 'owner' ? "bg-amber-500 text-white" :
                         "bg-blue-500 text-white"
                       )}>
-                        {u.role}
+                        {u.role === 'admin' ? 'Admin Master' : u.role === 'owner' ? 'Dono Estabelecimento' : 'Cliente'}
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-4 mt-1">

@@ -3,7 +3,8 @@ import {
   Calendar, Clock, Settings, Plus, 
   MoreVertical, Check, X, Filter,
   LayoutDashboard, Package, Users as UsersIcon,
-  Instagram, Facebook, Youtube, MessageCircle, Trash2, Sparkles
+  Instagram, Facebook, Youtube, MessageCircle, Trash2, Sparkles,
+  Share2, Copy
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -18,6 +19,7 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
   const [showAddService, setShowAddService] = useState(false);
   const [socialLinks, setSocialLinks] = useState<{ type: string, value: string }[]>([]);
   const [businessHours, setBusinessHours] = useState({ open: '08:00', close: '18:00' });
+  const [showSocials, setShowSocials] = useState(true);
 
   const socialOptions = [
     { id: 'whatsapp', label: 'WhatsApp', icon: <MessageCircle size={18} />, placeholder: '11999999999' },
@@ -393,57 +395,91 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
               </div>
 
               <div className="p-10 rounded-[40px] border shadow-sm space-y-8 bg-white dark:bg-[#141417] border-zinc-200 dark:border-white/5">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-2xl font-black dark:text-white">Redes Sociais</h3>
-                  <button 
-                    type="button"
-                    onClick={addSocialLink}
-                    className="text-sm font-bold text-emerald-600 flex items-center gap-2 hover:text-emerald-700 transition-colors"
-                  >
-                    <Plus size={20} /> Adicionar Rede
-                  </button>
-                </div>
-                
-                <div className="space-y-6">
-                  {socialLinks.map((link, index) => (
-                    <div key={index} className="flex flex-col md:flex-row gap-4 items-end group p-6 rounded-3xl bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-100 dark:border-white/5">
-                      <div className="w-full md:flex-1 space-y-2">
-                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Rede Social</label>
-                        <select 
-                          className="w-full p-4 rounded-2xl outline-none transition-all bg-white dark:bg-[#141417] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
-                          value={link.type}
-                          onChange={(e) => updateSocialLink(index, 'type', e.target.value)}
-                        >
-                          {socialOptions.map(opt => (
-                            <option key={opt.id} value={opt.id}>{opt.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="w-full md:flex-[2] space-y-2">
-                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Usuário / Link</label>
-                        <input 
-                          className="w-full p-4 rounded-2xl outline-none transition-all bg-white dark:bg-[#141417] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
-                          placeholder={socialOptions.find(o => o.id === link.type)?.placeholder}
-                          value={link.value}
-                          onChange={(e) => updateSocialLink(index, 'value', e.target.value)}
-                        />
-                      </div>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="flex items-center gap-4">
+                    <h3 className="text-2xl font-black dark:text-white">Redes Sociais</h3>
+                    {socialLinks.length > 2 && (
                       <button 
                         type="button"
-                        onClick={() => removeSocialLink(index)}
-                        className="p-4 rounded-2xl text-zinc-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                        onClick={() => setShowSocials(!showSocials)}
+                        className="text-xs font-bold px-3 py-1 rounded-lg bg-zinc-100 dark:bg-white/5 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-all"
                       >
-                        <Trash2 size={24} />
+                        {showSocials ? 'Ocultar Redes' : `Mostrar (${socialLinks.length})`}
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 p-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                      <input 
+                        readOnly 
+                        value={`${window.location.origin}?shop=${shopId}`}
+                        className="bg-transparent border-none outline-none text-[10px] font-mono dark:text-white w-32"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}?shop=${shopId}`);
+                          toast.success('Link da loja copiado!');
+                        }}
+                        className="p-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-all"
+                        title="Copiar Link da Loja"
+                      >
+                        <Copy size={14} />
                       </button>
                     </div>
-                  ))}
-
-                  {socialLinks.length === 0 && (
-                    <div className="text-center py-12 border-2 border-dashed border-zinc-100 dark:border-white/5 rounded-[32px]">
-                      <p className="text-zinc-400 font-medium">Nenhuma rede social adicionada.</p>
-                    </div>
-                  )}
+                    <button 
+                      type="button"
+                      onClick={addSocialLink}
+                      className="text-sm font-bold text-emerald-600 flex items-center gap-2 hover:text-emerald-700 transition-colors"
+                    >
+                      <Plus size={20} /> Adicionar Rede
+                    </button>
+                  </div>
                 </div>
+                
+                {showSocials && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                    {socialLinks.map((link, index) => (
+                      <div key={index} className="flex flex-col md:flex-row gap-4 items-end group p-6 rounded-3xl bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-100 dark:border-white/5">
+                        <div className="w-full md:flex-1 space-y-2">
+                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Rede Social</label>
+                          <select 
+                            className="w-full p-4 rounded-2xl outline-none transition-all bg-white dark:bg-[#141417] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                            value={link.type}
+                            onChange={(e) => updateSocialLink(index, 'type', e.target.value)}
+                          >
+                            {socialOptions.map(opt => (
+                              <option key={opt.id} value={opt.id}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="w-full md:flex-[2] space-y-2">
+                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Usuário / Link</label>
+                          <input 
+                            className="w-full p-4 rounded-2xl outline-none transition-all bg-white dark:bg-[#141417] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                            placeholder={socialOptions.find(o => o.id === link.type)?.placeholder}
+                            value={link.value}
+                            onChange={(e) => updateSocialLink(index, 'value', e.target.value)}
+                          />
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => removeSocialLink(index)}
+                          className="p-4 rounded-2xl text-zinc-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                        >
+                          <Trash2 size={24} />
+                        </button>
+                      </div>
+                    ))}
+
+                    {socialLinks.length === 0 && (
+                      <div className="text-center py-12 border-2 border-dashed border-zinc-100 dark:border-white/5 rounded-[32px]">
+                        <p className="text-zinc-400 font-medium">Nenhuma rede social adicionada.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="p-10 rounded-[40px] border shadow-sm space-y-8 bg-white dark:bg-[#141417] border-zinc-200 dark:border-white/5">

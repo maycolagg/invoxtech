@@ -99,10 +99,16 @@ async function startServer() {
     if (user) {
       const { data: n8nSetting } = await supabase.from("global_settings").select("value").eq("key", "n8n_webhook_url").single();
       if (n8nSetting?.value) {
+        const resetLink = `${req.protocol}://${req.get('host')}/?action=reset&email=${user.email}`;
         await fetch(n8nSetting.value, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'PASSWORD_RECOVERY', email: user.email, name: user.name })
+          body: JSON.stringify({ 
+            type: 'PASSWORD_RECOVERY', 
+            email: user.email, 
+            name: user.name,
+            reset_link: resetLink 
+          })
         });
       }
     }
@@ -226,11 +232,29 @@ async function startServer() {
   });
 
   app.post("/api/bookings", async (req, res) => {
-    const { 
+    let { 
       shop_id, service_id, customer_id, customer_name, customer_email, 
       customer_phone, customer_cpf, booking_date, start_time, end_time, 
       payment_method, total_price 
     } = req.body;
+
+    // Verificação de conta existente por CPF ou Email para evitar inconstância
+    if (!customer_id && (customer_email || customer_cpf)) {
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select("id, name, email, phone, cpf")
+        .or(`email.eq.${customer_email},cpf.eq.${customer_cpf}`)
+        .maybeSingle();
+
+      if (existingUser) {
+        customer_id = existingUser.id;
+        // Opcionalmente atualizamos os dados do agendamento com os dados reais da conta
+        customer_name = existingUser.name;
+        customer_email = existingUser.email;
+        customer_phone = existingUser.phone || customer_phone;
+        customer_cpf = existingUser.cpf || customer_cpf;
+      }
+    }
 
     const { data: booking, error } = await supabase
       .from("bookings")

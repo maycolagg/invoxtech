@@ -22,7 +22,7 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
     email: '',
     phone: '',
     cpf: '',
-    paymentMethod: 'money'
+    paymentMethod: 'Dinheiro'
   });
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
