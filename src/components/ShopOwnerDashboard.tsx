@@ -13,7 +13,7 @@ import { cn, type Booking, type Service, type Shop } from '../types';
 import toast from 'react-hot-toast';
 
 export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEmail }: { shopId: number, isAdminView?: boolean, userEmail?: string }) {
-  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'settings'>(isAdminView ? 'bookings' : 'settings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'settings'>('bookings');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [shop, setShop] = useState<Shop | null>(null);
@@ -189,10 +189,10 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
 
         <nav className="space-y-2">
           {[
-            { id: 'bookings', label: 'Agenda', icon: <Calendar size={18} />, adminOnly: true },
-            { id: 'services', label: 'Serviços', icon: <Package size={18} />, adminOnly: true },
-            { id: 'settings', label: 'Personalização', icon: <Settings size={18} />, adminOnly: false },
-          ].filter(item => isAdminView || !item.adminOnly).map((item) => (
+            { id: 'bookings', label: 'Agenda', icon: <Calendar size={18} /> },
+            { id: 'services', label: 'Serviços', icon: <Package size={18} /> },
+            { id: 'settings', label: 'Personalização', icon: <Settings size={18} /> },
+          ].map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id as any)}
@@ -218,10 +218,10 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
       {/* Mobile Bottom Nav */}
       <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-[#141417] border-t border-zinc-200 dark:border-white/5 z-40 px-6 py-4 flex justify-around items-center">
         {[
-          { id: 'bookings', label: 'Agenda', icon: <Calendar size={20} />, adminOnly: true },
-          { id: 'services', label: 'Serviços', icon: <Package size={20} />, adminOnly: true },
-          { id: 'settings', label: 'Ajustes', icon: <Settings size={20} />, adminOnly: false },
-        ].filter(item => isAdminView || !item.adminOnly).map((item) => (
+          { id: 'bookings', label: 'Agenda', icon: <Calendar size={20} /> },
+          { id: 'services', label: 'Serviços', icon: <Package size={20} /> },
+          { id: 'settings', label: 'Ajustes', icon: <Settings size={20} /> },
+        ].map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id as any)}
