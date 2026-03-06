@@ -7,9 +7,11 @@ import LandingPage from './components/LandingPage';
 import { 
   Car, Shield, Clock, MapPin, 
   ChevronRight, Star, Sparkles,
-  LogOut, User as UserIcon, Lock
+  LogOut, User as UserIcon, Lock,
+  Menu, X
 } from 'lucide-react';
 import { cn, type User, type Shop } from './types';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -23,6 +25,7 @@ export default function App() {
   const [companyName, setCompanyName] = useState('Invox Tech');
   const [logoUrl, setLogoUrl] = useState('/logo.png');
   const [isBusiness, setIsBusiness] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -121,13 +124,13 @@ export default function App() {
       
       {/* Header */}
       <header className={cn(
-        "fixed top-0 left-0 w-full backdrop-blur-md border-b z-40 transition-all duration-500",
+        "fixed top-0 left-0 w-full backdrop-blur-md border-b z-50 transition-all duration-500",
         theme === 'dark' ? "bg-[#09090b]/80 border-white/5" : "bg-white/80 border-zinc-100"
       )}>
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <button onClick={() => setView('booking')} className="flex items-center gap-3 group">
+          <button onClick={() => { setView('landing'); setIsMenuOpen(false); }} className="flex items-center gap-3 group">
             <div className={cn(
-              "w-12 h-12 rounded-2xl flex items-center justify-center text-white group-hover:rotate-12 transition-transform overflow-hidden",
+              "w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center text-white group-hover:rotate-12 transition-transform overflow-hidden",
               theme === 'dark' ? "bg-[#141417] border border-white/5" : "bg-zinc-900"
             )}>
               <img 
@@ -140,10 +143,11 @@ export default function App() {
                 }}
               />
             </div>
-            <span className="text-2xl font-black tracking-tighter">{companyName}</span>
+            <span className="text-xl md:text-2xl font-black tracking-tighter">{companyName}</span>
           </button>
 
-          <div className="flex items-center gap-6">
+          {/* Desktop Nav */}
+          <div className="hidden lg:flex items-center gap-6">
             <button 
               onClick={() => setView('landing')}
               className={cn(
@@ -153,7 +157,6 @@ export default function App() {
             >
               Explorar
             </button>
-            {/* Flutter-style Toggle Button */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className={cn(
@@ -175,7 +178,7 @@ export default function App() {
                   {user.role === 'admin' && (
                     <button 
                       onClick={() => setView('admin')}
-                      className="px-4 py-2 rounded-xl bg-zinc-100 font-bold text-sm hover:bg-zinc-200"
+                      className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 font-bold text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700"
                     >
                       Painel Master
                     </button>
@@ -183,13 +186,13 @@ export default function App() {
                   {user.role === 'owner' && (
                     <button 
                       onClick={() => setView('owner')}
-                      className="px-4 py-2 rounded-xl bg-zinc-100 font-bold text-sm hover:bg-zinc-200"
+                      className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 font-bold text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700"
                     >
                       Minha Estética
                     </button>
                   )}
                 </div>
-                <div className="text-right hidden sm:block">
+                <div className="text-right">
                   <div className="flex items-center gap-2 justify-end">
                     <p className="text-sm font-bold">{user.name}</p>
                     {user.role === 'admin' && (
@@ -201,8 +204,8 @@ export default function App() {
                   </p>
                 </div>
                 <button 
-                  onClick={() => { setUser(null); setView('booking'); }}
-                  className="p-2 rounded-xl hover:bg-zinc-100 text-zinc-500"
+                  onClick={() => { setUser(null); setView('landing'); }}
+                  className="p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
                 >
                   <LogOut size={20} />
                 </button>
@@ -210,13 +213,99 @@ export default function App() {
             ) : (
               <button 
                 onClick={() => setView('login')}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-zinc-100 transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               >
                 <Lock size={16} /> Login / Cadastro
               </button>
             )}
           </div>
+
+          {/* Mobile Menu Toggle */}
+          <div className="flex lg:hidden items-center gap-4">
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className={cn(
+                "relative w-12 h-7 rounded-full p-1 transition-all duration-500 flex items-center outline-none",
+                theme === 'dark' ? "bg-emerald-500/20 border border-emerald-500/30" : "bg-zinc-100 border border-zinc-200"
+              )}
+            >
+              <div className={cn(
+                "w-5 h-5 rounded-full shadow-lg flex items-center justify-center transition-all duration-500 transform",
+                theme === 'dark' ? "translate-x-5 bg-emerald-500" : "translate-x-0 bg-white"
+              )}>
+                {theme === 'dark' ? <Sparkles size={10} className="text-white" /> : <Clock size={10} className="text-zinc-400" />}
+              </div>
+            </button>
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white"
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Nav Menu */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="lg:hidden border-t border-zinc-100 dark:border-white/5 bg-white dark:bg-[#09090b] overflow-hidden"
+            >
+              <div className="p-6 space-y-4">
+                <button 
+                  onClick={() => { setView('landing'); setIsMenuOpen(false); }}
+                  className="w-full text-left py-3 px-4 rounded-xl font-bold text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  Explorar
+                </button>
+                {user ? (
+                  <>
+                    {user.role === 'admin' && (
+                      <button 
+                        onClick={() => { setView('admin'); setIsMenuOpen(false); }}
+                        className="w-full text-left py-3 px-4 rounded-xl font-bold text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      >
+                        Painel Master
+                      </button>
+                    )}
+                    {user.role === 'owner' && (
+                      <button 
+                        onClick={() => { setView('owner'); setIsMenuOpen(false); }}
+                        className="w-full text-left py-3 px-4 rounded-xl font-bold text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      >
+                        Minha Estética
+                      </button>
+                    )}
+                    <div className="pt-4 border-t border-zinc-100 dark:border-white/5">
+                      <div className="flex items-center justify-between px-4">
+                        <div>
+                          <p className="font-bold dark:text-white">{user.name}</p>
+                          <p className="text-xs text-zinc-400">{user.email}</p>
+                        </div>
+                        <button 
+                          onClick={() => { setUser(null); setView('landing'); setIsMenuOpen(false); }}
+                          className="p-2 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-500"
+                        >
+                          <LogOut size={20} />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <button 
+                    onClick={() => { setView('login'); setIsMenuOpen(false); }}
+                    className="w-full py-4 rounded-2xl bg-zinc-900 dark:bg-emerald-600 text-white font-black text-center"
+                  >
+                    Login / Cadastro
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       <main className="pt-20">
@@ -229,7 +318,7 @@ export default function App() {
 
         {view === 'booking' && selectedShopId && (
           <div className="pb-24">
-            <BookingFlow shopId={selectedShopId} />
+            <BookingFlow shopId={selectedShopId} user={user} />
           </div>
         )}
 

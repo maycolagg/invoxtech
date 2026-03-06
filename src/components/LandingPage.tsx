@@ -54,7 +54,7 @@ export default function LandingPage({ onSelectShop, companyName }: { onSelectSho
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] dark:text-white"
+            className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] dark:text-white"
           >
             Sua cidade, <br />
             <span className="text-emerald-500">em um só lugar.</span>
@@ -77,15 +77,15 @@ export default function LandingPage({ onSelectShop, companyName }: { onSelectSho
             className="max-w-3xl mx-auto relative"
           >
             <div className="relative group">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-emerald-500 transition-colors" size={24} />
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-emerald-500 transition-colors hidden sm:block" size={24} />
               <input 
                 type="text"
-                placeholder="O que você está procurando hoje?"
+                placeholder="O que você está procurando?"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-16 pr-6 py-8 rounded-[32px] bg-white dark:bg-[#141417] border border-zinc-200 dark:border-white/5 shadow-2xl shadow-zinc-200/50 dark:shadow-none outline-none text-xl font-medium focus:ring-4 focus:ring-emerald-500/10 transition-all dark:text-white"
+                className="w-full pl-6 sm:pl-16 pr-6 py-6 sm:py-8 rounded-[24px] sm:rounded-[32px] bg-white dark:bg-[#141417] border border-zinc-200 dark:border-white/5 shadow-2xl shadow-zinc-200/50 dark:shadow-none outline-none text-lg sm:text-xl font-medium focus:ring-4 focus:ring-emerald-500/10 transition-all dark:text-white"
               />
-              <button className="absolute right-4 top-1/2 -translate-y-1/2 bg-zinc-900 dark:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:scale-105 transition-all">
+              <button className="mt-4 sm:mt-0 sm:absolute sm:right-4 sm:top-1/2 sm:-translate-y-1/2 w-full sm:w-auto bg-zinc-900 dark:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:scale-105 transition-all">
                 Pesquisar <ArrowRight size={20} />
               </button>
             </div>
@@ -183,15 +183,15 @@ export default function LandingPage({ onSelectShop, companyName }: { onSelectSho
       </section>
 
       {/* Features Section */}
-      <section className="bg-zinc-900 dark:bg-[#141417] py-32 rounded-[80px] mx-6">
+      <section className="bg-zinc-50 dark:bg-[#141417] py-32 rounded-[80px] mx-6 transition-colors duration-500">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
           <div className="space-y-12">
             <div className="space-y-6">
-              <h2 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
+              <h2 className="text-5xl md:text-6xl font-black text-zinc-900 dark:text-white tracking-tighter leading-none">
                 Por que escolher <br />
                 <span className="text-emerald-500">{companyName}?</span>
               </h2>
-              <p className="text-zinc-400 text-xl font-medium">
+              <p className="text-zinc-500 dark:text-zinc-400 text-xl font-medium">
                 Simplificamos a conexão entre você e os melhores estabelecimentos da sua cidade.
               </p>
             </div>
@@ -207,19 +207,19 @@ export default function LandingPage({ onSelectShop, companyName }: { onSelectSho
                   <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
                     {f.icon}
                   </div>
-                  <h4 className="text-white font-bold text-lg">{f.title}</h4>
-                  <p className="text-zinc-500 text-sm leading-relaxed">{f.desc}</p>
+                  <h4 className="text-zinc-900 dark:text-white font-bold text-lg">{f.title}</h4>
+                  <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">{f.desc}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="relative">
-            <div className="aspect-square rounded-[60px] overflow-hidden border-8 border-white/5">
+            <div className="aspect-square rounded-[60px] overflow-hidden border-8 border-white/5 dark:border-white/5 bg-zinc-200 dark:bg-zinc-800">
               <img 
                 src="https://picsum.photos/seed/business/1000/1000" 
                 alt="Business" 
-                className="w-full h-full object-cover opacity-60"
+                className="w-full h-full object-cover opacity-60 dark:opacity-60"
                 referrerPolicy="no-referrer"
               />
             </div>

@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Calendar, Clock, User, Phone, Mail, CreditCard, 
+  Calendar, Clock, User as UserIcon, Phone, Mail, CreditCard, 
   CheckCircle2, ChevronRight, ChevronLeft, Car, 
   ShieldCheck, Sparkles, MapPin, Search,
-  Instagram, Facebook, Youtube, MessageCircle
+  Instagram, Facebook, Youtube, MessageCircle, Lock
 } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn, type Shop, type Service, type Booking } from '../types';
+import { cn, type Shop, type Service, type Booking, type User } from '../types';
 import toast from 'react-hot-toast';
 
-export default function BookingFlow({ shopId }: { shopId: number }) {
+export default function BookingFlow({ shopId, user }: { shopId: number, user: User | null }) {
   const [step, setStep] = useState(1);
   const [shop, setShop] = useState<Shop | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -23,7 +23,7 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
     phone: '',
     cpf: '',
     password: '',
-    paymentMethod: 'money'
+    paymentMethod: ''
   });
   const [userExists, setUserExists] = useState<boolean | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
@@ -50,6 +50,21 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
   ];
 
   useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        cpf: user.cpf || '',
+        password: user.password // We use the existing password for the booking API
+      }));
+      setUserExists(true);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) return; // Skip check if already logged in
     if (formData.email || formData.cpf) {
       const timer = setTimeout(() => {
         fetch(`/api/auth/check-user?email=${formData.email}&cpf=${formData.cpf}`)
@@ -144,8 +159,8 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-8">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Sidebar: Shop Info */}
-        <div className="lg:col-span-4 space-y-6">
+        {/* Left Sidebar: Shop Info (Moved to bottom on mobile) */}
+        <div className="lg:col-span-4 space-y-6 order-2 lg:order-1">
           <div className="rounded-[40px] border shadow-xl overflow-hidden sticky top-24 transition-colors bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800">
             <div className="h-48 relative">
               <img 
@@ -154,10 +169,10 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               <div className="absolute bottom-6 left-6 right-6">
-                <h1 className="text-2xl font-black text-white leading-tight">{shop.name}</h1>
-                <div className="flex items-center gap-2 text-white/80 text-xs font-bold uppercase tracking-wider mt-1">
+                <h1 className="text-2xl font-black text-white leading-tight drop-shadow-sm">{shop.name}</h1>
+                <div className="flex items-center gap-2 text-white/90 text-xs font-bold uppercase tracking-wider mt-1 drop-shadow-sm">
                   <MapPin size={14} /> {shop.address}
                 </div>
               </div>
@@ -209,21 +224,21 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
           </div>
         </div>
 
-        {/* Right Content: Booking Steps */}
-        <div className="lg:col-span-8">
+        {/* Right Content: Booking Steps (Moved to top on mobile) */}
+        <div className="lg:col-span-8 order-1 lg:order-2">
           <div className="rounded-[40px] border p-6 md:p-10 shadow-sm transition-colors bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800">
             {/* Progress Bar */}
-            <div className="flex justify-between mb-12 relative px-4">
+            <div className="flex justify-between mb-12 relative px-2 md:px-4">
               <div className="absolute top-1/2 left-0 w-full h-0.5 bg-zinc-100 dark:bg-zinc-800 -z-10 -translate-y-1/2" />
               {[1, 2, 3, 4].map((i) => (
                 <div 
                   key={i}
                   className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-all duration-500",
+                    "w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center border-2 transition-all duration-500",
                     step >= i ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-100" : "bg-white dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 text-zinc-300 dark:text-zinc-600"
                   )}
                 >
-                  {step > i ? <CheckCircle2 size={24} /> : <span className="font-black text-lg">{i}</span>}
+                  {step > i ? <CheckCircle2 size={20} className="md:w-6 md:h-6" /> : <span className="font-black text-base md:text-lg">{i}</span>}
                 </div>
               ))}
             </div>
@@ -384,13 +399,14 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-400 uppercase">Nome Completo</label>
                   <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                    <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
                     <input 
                       type="text" 
                       placeholder="Ex: João Silva"
-                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                       value={formData.name}
                       onChange={e => setFormData({...formData, name: e.target.value})}
+                      disabled={!!user}
                     />
                   </div>
                 </div>
@@ -401,9 +417,10 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
                     <input 
                       type="tel" 
                       placeholder="(11) 99999-9999"
-                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                       value={formData.phone}
                       onChange={e => setFormData({...formData, phone: e.target.value})}
+                      disabled={!!user}
                     />
                   </div>
                 </div>
@@ -414,9 +431,10 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
                     <input 
                       type="email" 
                       placeholder="joao@email.com"
-                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                       value={formData.email}
                       onChange={e => setFormData({...formData, email: e.target.value})}
+                      disabled={!!user}
                     />
                   </div>
                 </div>
@@ -427,19 +445,38 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
                     <input 
                       type="text" 
                       placeholder="000.000.000-00"
-                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                       value={formData.cpf}
                       onChange={e => setFormData({...formData, cpf: e.target.value})}
+                      disabled={!!user}
                     />
                   </div>
                 </div>
-                {userExists === true && (
-                  <div className="md:col-span-2 p-4 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center gap-3 text-blue-700 dark:text-blue-400 animate-in fade-in slide-in-from-top-2">
-                    <ShieldCheck size={20} />
-                    <p className="text-xs font-bold">Conta encontrada! Seu agendamento será vinculado ao seu perfil automaticamente.</p>
+                {!user && userExists === true && (
+                  <div className="md:col-span-2 space-y-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center gap-3 text-blue-700 dark:text-blue-400">
+                      <ShieldCheck size={20} />
+                      <p className="text-xs font-bold">Conta encontrada! Por favor, confirme sua senha para vincular o agendamento.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-blue-500 uppercase flex items-center gap-2">
+                        <Lock size={14} /> Confirme sua Senha
+                      </label>
+                      <div className="relative">
+                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                        <input 
+                          type="password" 
+                          placeholder="Sua senha de acesso"
+                          className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-blue-50/30 dark:bg-blue-500/5 border-blue-200 dark:border-blue-500/20 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                          value={formData.password}
+                          onChange={e => setFormData({...formData, password: e.target.value})}
+                          required
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
-                {userExists === false && (
+                {!user && userExists === false && (
                   <div className="space-y-2 md:col-span-2 animate-in fade-in slide-in-from-top-2">
                     <label className="text-xs font-bold text-emerald-500 uppercase flex items-center gap-2">
                       <Sparkles size={14} /> Crie uma senha para sua nova conta
@@ -466,7 +503,7 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
                 <ChevronLeft size={20} /> Voltar
               </button>
               <button 
-                disabled={!formData.name || !formData.phone || !formData.cpf}
+                disabled={!formData.name || !formData.phone || !formData.cpf || !formData.password}
                 onClick={nextStep} 
                 className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-8 py-3 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50"
               >
@@ -518,29 +555,29 @@ export default function BookingFlow({ shopId }: { shopId: number }) {
               ))}
             </div>
 
-            <div className="p-8 rounded-3xl space-y-4 bg-zinc-900 dark:bg-zinc-800 text-white">
-              <h3 className="text-xl font-bold">Resumo do Agendamento</h3>
-              <div className="space-y-2 opacity-80 text-sm">
+            <div className="p-8 rounded-3xl space-y-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 transition-colors">
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Resumo do Agendamento</h3>
+              <div className="space-y-2 text-zinc-500 dark:text-zinc-400 text-sm">
                 <div className="flex justify-between">
                   <span>Serviço</span>
-                  <span className="font-bold">{selectedService?.name}</span>
+                  <span className="font-bold text-zinc-900 dark:text-white">{selectedService?.name}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Data</span>
-                  <span className="font-bold">{format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</span>
+                  <span className="font-bold text-zinc-900 dark:text-white">{format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Horário</span>
-                  <span className="font-bold">{selectedTime}</span>
+                  <span className="font-bold text-zinc-900 dark:text-white">{selectedTime}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Pagamento</span>
-                  <span className="font-bold uppercase">{formData.paymentMethod}</span>
+                  <span className="font-bold uppercase text-zinc-900 dark:text-white">{formData.paymentMethod}</span>
                 </div>
               </div>
-              <div className="pt-4 border-t border-white/10 flex justify-between items-center">
-                <span className="text-lg">Total</span>
-                <span className="text-3xl font-black text-emerald-400">R$ {selectedService?.price.toFixed(2)}</span>
+              <div className="pt-4 border-t border-zinc-200 dark:border-white/10 flex justify-between items-center">
+                <span className="text-lg text-zinc-900 dark:text-white">Total</span>
+                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400">R$ {selectedService?.price.toFixed(2)}</span>
               </div>
             </div>
 

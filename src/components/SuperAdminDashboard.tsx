@@ -70,51 +70,53 @@ export default function SuperAdminDashboard() {
             <p className="text-zinc-500 mt-1">Visão geral de todas as estéticas e faturamento global</p>
           </div>
         </div>
-        <div className="p-1.5 rounded-2xl flex gap-1 bg-zinc-100 dark:bg-[#141417] border border-zinc-200 dark:border-white/5">
-          <button 
-            onClick={() => { setActiveTab('analytics'); setSelectedShopId(null); }}
-            className={cn(
-              "px-6 py-2.5 rounded-xl text-sm font-bold transition-all", 
-              activeTab === 'analytics' 
-                ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white" 
-                : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-            )}
-          >
-            Analytics
-          </button>
-          <button 
-            onClick={() => { setActiveTab('shops'); setSelectedShopId(null); }}
-            className={cn(
-              "px-6 py-2.5 rounded-xl text-sm font-bold transition-all", 
-              activeTab === 'shops' 
-                ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white" 
-                : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-            )}
-          >
-            Lojas
-          </button>
-          <button 
-            onClick={() => { setActiveTab('users'); setSelectedShopId(null); }}
-            className={cn(
-              "px-6 py-2.5 rounded-xl text-sm font-bold transition-all", 
-              activeTab === 'users' 
-                ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white" 
-                : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-            )}
-          >
-            Usuários
-          </button>
-          <button 
-            onClick={() => { setActiveTab('settings'); setSelectedShopId(null); }}
-            className={cn(
-              "px-6 py-2.5 rounded-xl text-sm font-bold transition-all", 
-              activeTab === 'settings' 
-                ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white" 
-                : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-            )}
-          >
-            Configurações
-          </button>
+        <div className="w-full overflow-x-auto no-scrollbar">
+          <div className="p-1.5 rounded-2xl flex gap-1 bg-zinc-100 dark:bg-[#141417] border border-zinc-200 dark:border-white/5 w-max md:w-auto">
+            <button 
+              onClick={() => { setActiveTab('analytics'); setSelectedShopId(null); }}
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap", 
+                activeTab === 'analytics' 
+                  ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white" 
+                  : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              )}
+            >
+              Analytics
+            </button>
+            <button 
+              onClick={() => { setActiveTab('shops'); setSelectedShopId(null); }}
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap", 
+                activeTab === 'shops' 
+                  ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white" 
+                  : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              )}
+            >
+              Lojas
+            </button>
+            <button 
+              onClick={() => { setActiveTab('users'); setSelectedShopId(null); }}
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap", 
+                activeTab === 'users' 
+                  ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white" 
+                  : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              )}
+            >
+              Usuários
+            </button>
+            <button 
+              onClick={() => { setActiveTab('settings'); setSelectedShopId(null); }}
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap", 
+                activeTab === 'settings' 
+                  ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white" 
+                  : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              )}
+            >
+              Configurações
+            </button>
+          </div>
         </div>
       </div>
 

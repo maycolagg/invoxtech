@@ -22,17 +22,18 @@ async function startServer() {
   // Auth
   app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body;
+    // Permitir login por E-mail ou CPF
     const { data: user, error } = await supabase
       .from("users")
       .select("*")
-      .eq("email", email)
+      .or(`email.eq.${email},cpf.eq.${email}`)
       .eq("password", password)
-      .single();
+      .maybeSingle();
 
     if (user) {
       res.json(user);
     } else {
-      res.status(401).json({ error: "Credenciais inválidas" });
+      res.status(401).json({ error: "Credenciais inválidas. Verifique seu e-mail/CPF e senha." });
     }
   });
 
@@ -255,11 +256,15 @@ async function startServer() {
     if (!customer_id && (customer_email || customer_cpf)) {
       const { data: existingUser } = await supabase
         .from("users")
-        .select("id, name, email, phone, cpf")
+        .select("id, name, email, phone, cpf, password")
         .or(`email.eq.${customer_email},cpf.eq.${customer_cpf}`)
         .maybeSingle();
 
       if (existingUser) {
+        // Se a conta existe, validamos a senha
+        if (existingUser.password !== password) {
+          return res.status(401).json({ error: "Esta conta já existe. Por favor, informe a senha correta para vincular o agendamento." });
+        }
         customer_id = existingUser.id;
         // Opcionalmente atualizamos os dados do agendamento com os dados reais da conta
         customer_name = existingUser.name;

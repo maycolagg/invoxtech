@@ -4,7 +4,7 @@ import {
   MoreVertical, Check, X, Filter,
   LayoutDashboard, Package, Users as UsersIcon,
   Instagram, Facebook, Youtube, MessageCircle, Trash2, Sparkles,
-  Share2, Copy
+  Share2, Copy, Menu
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -139,9 +139,9 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
   };
 
   return (
-    <div className="flex min-h-screen transition-colors duration-500 bg-zinc-50 dark:bg-[#0a0a0c]">
-      {/* Sidebar */}
-      <aside className="w-64 border-r p-6 flex flex-col gap-8 transition-all duration-500 bg-white dark:bg-[#141417] border-zinc-200 dark:border-white/5">
+    <div className="flex flex-col lg:flex-row min-h-screen transition-colors duration-500 bg-zinc-50 dark:bg-[#0a0a0c]">
+      {/* Sidebar - Desktop */}
+      <aside className="hidden lg:flex w-64 border-r p-6 flex-col gap-8 transition-all duration-500 bg-white dark:bg-[#141417] border-zinc-200 dark:border-white/5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-zinc-900 dark:bg-emerald-600 overflow-hidden">
             <img src={companySettings.logo_url} alt={companySettings.company_name} className="w-full h-full object-cover" />
@@ -177,8 +177,29 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
         </div>
       </aside>
 
+      {/* Mobile Bottom Nav */}
+      <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-[#141417] border-t border-zinc-200 dark:border-white/5 z-40 px-6 py-4 flex justify-around items-center">
+        {[
+          { id: 'bookings', label: 'Agenda', icon: <Calendar size={20} />, adminOnly: true },
+          { id: 'services', label: 'Serviços', icon: <Package size={20} />, adminOnly: true },
+          { id: 'settings', label: 'Ajustes', icon: <Settings size={20} />, adminOnly: false },
+        ].filter(item => isAdminView || !item.adminOnly).map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setActiveTab(item.id as any)}
+            className={cn(
+              "flex flex-col items-center gap-1 transition-all",
+              activeTab === item.id ? "text-emerald-500" : "text-zinc-400"
+            )}
+          >
+            {item.icon}
+            <span className="text-[10px] font-bold uppercase tracking-widest">{item.label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Main Content */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 lg:pb-12 overflow-y-auto">
         {activeTab === 'bookings' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
