@@ -30,6 +30,29 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
   const [loading, setLoading] = useState(false);
   const [dateOffset, setDateOffset] = useState(0);
 
+  const formatCPF = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  };
+
+  const formatPhone = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d)/, '$1-$2')
+      .replace(/(-\d{4})\d+?$/, '$1');
+  };
+
+  const paymentMethodLabels: Record<string, string> = {
+    'money': 'DINHEIRO',
+    'pix': 'PIX',
+    'card': 'CARTÃO'
+  };
+
   useEffect(() => {
     fetch(`/api/shops/${shopId}`)
       .then(res => res.json())
@@ -422,7 +445,10 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
                     "grid grid-cols-1 gap-4",
                     (!userExists || user) ? "md:grid-cols-2" : "md:grid-cols-1"
                   )}>
-                    <div className="space-y-2">
+                    <div className={cn(
+                      "space-y-2",
+                      (userExists && formData.cpf && !formData.email) && "hidden"
+                    )}>
                       <label className="text-xs font-bold text-zinc-400 uppercase">E-mail</label>
                       <div className="relative">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
@@ -436,22 +462,23 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
                         />
                       </div>
                     </div>
-                    {(!userExists || user) && (
-                      <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                        <label className="text-xs font-bold text-zinc-400 uppercase">CPF</label>
-                        <div className="relative">
-                          <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                          <input 
-                            type="text" 
-                            placeholder="000.000.000-00"
-                            className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                            value={formData.cpf}
-                            onChange={e => setFormData({...formData, cpf: e.target.value})}
-                            disabled={!!user}
-                          />
-                        </div>
+                    <div className={cn(
+                      "space-y-2 animate-in fade-in slide-in-from-top-2",
+                      (userExists && formData.email && !formData.cpf) && "hidden"
+                    )}>
+                      <label className="text-xs font-bold text-zinc-400 uppercase">CPF</label>
+                      <div className="relative">
+                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                        <input 
+                          type="text" 
+                          placeholder="000.000.000-00"
+                          className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                          value={formData.cpf}
+                          onChange={e => setFormData({...formData, cpf: formatCPF(e.target.value)})}
+                          disabled={!!user}
+                        />
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
 
@@ -472,7 +499,7 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
                       </div>
                     </div>
                     <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                      <label className="text-xs font-bold text-zinc-400 uppercase">WhatsApp</label>
+                      <label className="text-xs font-bold text-zinc-400 uppercase">Número do Celular</label>
                       <div className="relative">
                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
                         <input 
@@ -480,7 +507,7 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
                           placeholder="(11) 99999-9999"
                           className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                           value={formData.phone}
-                          onChange={e => setFormData({...formData, phone: e.target.value})}
+                          onChange={e => setFormData({...formData, phone: formatPhone(e.target.value)})}
                           disabled={!!user}
                         />
                       </div>
@@ -620,7 +647,7 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
                 </div>
                 <div className="flex justify-between">
                   <span>Pagamento</span>
-                  <span className="font-bold uppercase text-zinc-900 dark:text-white">{formData.paymentMethod}</span>
+                  <span className="font-bold uppercase text-zinc-900 dark:text-white">{paymentMethodLabels[formData.paymentMethod] || formData.paymentMethod}</span>
                 </div>
               </div>
               <div className="pt-4 border-t border-zinc-200 dark:border-white/10 flex justify-between items-center">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Calendar, Clock, Settings, Plus, 
   MoreVertical, Check, X, Filter,
@@ -21,6 +22,29 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
   const [businessHours, setBusinessHours] = useState({ open: '08:00', close: '18:00' });
   const [showSocials, setShowSocials] = useState(true);
   const [companySettings, setCompanySettings] = useState({ company_name: 'Invox Tech', logo_url: '/logo.png' });
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+
+  const paymentMethodLabels: Record<string, string> = {
+    'money': 'DINHEIRO',
+    'pix': 'PIX',
+    'card': 'CARTÃO'
+  };
+
+  const statusLabels: Record<string, string> = {
+    'pending': 'Pendente',
+    'confirmed': 'Confirmado',
+    'in_progress': 'Em Andamento',
+    'completed': 'Concluído',
+    'cancelled': 'Cancelado'
+  };
+
+  const statusColors: Record<string, string> = {
+    'pending': 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    'confirmed': 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400',
+    'in_progress': 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400',
+    'completed': 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    'cancelled': 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400'
+  };
 
   const socialOptions = [
     { id: 'whatsapp', label: 'WhatsApp', icon: <MessageCircle size={18} />, placeholder: '11999999999' },
@@ -67,6 +91,20 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
         if (data) setCompanySettings(data);
       });
   }, [shopId]);
+
+  const updateBooking = async (id: number, updates: Partial<Booking>) => {
+    const res = await fetch(`/api/bookings/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+
+    if (res.ok) {
+      toast.success('Agendamento atualizado!');
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+      setEditingBooking(null);
+    }
+  };
 
   const saveShopProfile = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -223,6 +261,7 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
                     <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-widest">Serviço</th>
                     <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-widest">Pagamento</th>
                     <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-widest">Notas</th>
                     <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-widest">Ações</th>
                   </tr>
                 </thead>
@@ -247,20 +286,34 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-bold dark:text-white">R$ {booking.total_price.toFixed(2)}</div>
-                        <div className="text-xs text-zinc-400 uppercase">{booking.payment_method}</div>
+                        <div className="text-xs text-zinc-400 uppercase">{paymentMethodLabels[booking.payment_method] || booking.payment_method}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={cn(
-                          "px-3 py-1 rounded-full text-xs font-bold",
-                          booking.status === 'confirmed' ? "bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400" :
-                          booking.status === 'pending' ? "bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400" :
-                          "bg-zinc-100 dark:bg-white/10 text-zinc-700 dark:text-zinc-400"
-                        )}>
-                          {booking.status}
-                        </span>
+                        <select 
+                          value={booking.status}
+                          onChange={(e) => updateBooking(booking.id, { status: e.target.value as any })}
+                          className={cn(
+                            "px-3 py-1 rounded-full text-xs font-bold border-none outline-none cursor-pointer appearance-none",
+                            statusColors[booking.status]
+                          )}
+                        >
+                          {Object.entries(statusLabels).map(([val, label]) => (
+                            <option key={val} value={val} className="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white">
+                              {label}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td className="px-6 py-4">
-                        <button className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
+                        <div className="max-w-[150px] truncate text-xs text-zinc-500 dark:text-zinc-400 italic">
+                          {booking.notes || 'Sem notas'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button 
+                          onClick={() => setEditingBooking(booking)}
+                          className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                        >
                           <MoreVertical size={18} />
                         </button>
                       </td>
@@ -553,6 +606,59 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
           </div>
         )}
       </main>
+      {/* Modal de Edição de Notas */}
+      <AnimatePresence>
+        {editingBooking && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-[32px] p-8 shadow-2xl border border-zinc-100 dark:border-white/5"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-black dark:text-white">Detalhes do Agendamento</h3>
+                <button onClick={() => setEditingBooking(null)} className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-400">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-white/5 space-y-2">
+                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Cliente</p>
+                  <p className="font-bold dark:text-white text-lg">{editingBooking.customer_name}</p>
+                  <p className="text-sm text-zinc-500">{editingBooking.customer_phone}</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Notas do Estabelecimento</label>
+                  <textarea 
+                    className="w-full p-4 rounded-2xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 min-h-[120px]"
+                    placeholder="Adicione observações sobre o serviço, preferências do cliente, etc..."
+                    defaultValue={editingBooking.notes}
+                    onBlur={(e) => updateBooking(editingBooking.id, { notes: e.target.value })}
+                  />
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button 
+                    onClick={() => setEditingBooking(null)}
+                    className="flex-1 py-4 rounded-2xl font-bold bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400"
+                  >
+                    Fechar
+                  </button>
+                  <button 
+                    onClick={() => setEditingBooking(null)}
+                    className="flex-1 py-4 rounded-2xl font-bold bg-zinc-900 dark:bg-emerald-600 text-white"
+                  >
+                    Salvar Notas
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

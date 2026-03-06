@@ -11,6 +11,7 @@ export interface User {
   email: string;
   phone?: string;
   cpf?: string;
+  password?: string;
   role: 'admin' | 'owner' | 'customer';
   shop_id?: number;
   category?: string;
@@ -56,8 +57,9 @@ export interface Booking {
   booking_date: string;
   start_time: string;
   end_time: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'in_progress';
   payment_method: string;
   total_price: number;
+  notes?: string;
   created_at: string;
 }

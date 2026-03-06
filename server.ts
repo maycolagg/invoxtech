@@ -313,6 +313,12 @@ async function startServer() {
 
     const webhookUrl = n8nSetting?.value;
 
+    const paymentMethodLabels: Record<string, string> = {
+      'money': 'DINHEIRO',
+      'pix': 'PIX',
+      'card': 'CARTÃO'
+    };
+
     if (webhookUrl) {
       try {
         const { data: shop } = await supabase.from("shops").select("name, email").eq("id", shop_id).single();
@@ -332,7 +338,7 @@ async function startServer() {
             customer_email,
             booking_date,
             start_time,
-            payment_method,
+            payment_method: paymentMethodLabels[payment_method] || payment_method,
             total_price
           })
         });
@@ -362,6 +368,23 @@ async function startServer() {
     }));
 
     res.json(formatted || []);
+  });
+
+  app.put("/api/bookings/:id", async (req, res) => {
+    const { status, notes } = req.body;
+    const updateData: any = {};
+    if (status) updateData.status = status;
+    if (notes !== undefined) updateData.notes = notes;
+
+    const { data, error } = await supabase
+      .from("bookings")
+      .update(updateData)
+      .eq("id", req.params.id)
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
   });
 
   // Analytics
