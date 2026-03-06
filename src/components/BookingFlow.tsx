@@ -23,7 +23,7 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
     phone: '',
     cpf: '',
     password: '',
-    paymentMethod: 'money'
+    paymentMethod: ''
   });
   const [userExists, setUserExists] = useState<boolean | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
