@@ -23,7 +23,7 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
     phone: '',
     cpf: '',
     password: '',
-    paymentMethod: ''
+    paymentMethod: 'money'
   });
   const [userExists, setUserExists] = useState<boolean | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
@@ -74,8 +74,10 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
           });
       }, 500);
       return () => clearTimeout(timer);
+    } else {
+      setUserExists(null);
     }
-  }, [formData.email, formData.cpf]);
+  }, [formData.email, formData.cpf, user]);
 
   const handleBooking = async () => {
     if (!selectedService || !selectedTime) return;
@@ -112,6 +114,25 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
       toast.error('Erro de conexão.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      toast.error('Por favor, informe seu e-mail primeiro.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email })
+      });
+      if (res.ok) {
+        toast.success('Link de recuperação enviado para seu e-mail!');
+      }
+    } catch (e) {
+      toast.error('Erro ao solicitar recuperação.');
     }
   };
 
@@ -396,62 +417,77 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
 
             <div className="p-8 rounded-3xl border shadow-sm space-y-4 bg-white dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-400 uppercase">Nome Completo</label>
-                  <div className="relative">
-                    <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                    <input 
-                      type="text" 
-                      placeholder="Ex: João Silva"
-                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                      value={formData.name}
-                      onChange={e => setFormData({...formData, name: e.target.value})}
-                      disabled={!!user}
-                    />
+                <div className="md:col-span-2 space-y-4">
+                  <div className={cn(
+                    "grid grid-cols-1 gap-4",
+                    (!userExists || user) ? "md:grid-cols-2" : "md:grid-cols-1"
+                  )}>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-400 uppercase">E-mail</label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                        <input 
+                          type="email" 
+                          placeholder="joao@email.com"
+                          className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                          value={formData.email}
+                          onChange={e => setFormData({...formData, email: e.target.value})}
+                          disabled={!!user}
+                        />
+                      </div>
+                    </div>
+                    {(!userExists || user) && (
+                      <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <label className="text-xs font-bold text-zinc-400 uppercase">CPF</label>
+                        <div className="relative">
+                          <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                          <input 
+                            type="text" 
+                            placeholder="000.000.000-00"
+                            className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                            value={formData.cpf}
+                            onChange={e => setFormData({...formData, cpf: e.target.value})}
+                            disabled={!!user}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-400 uppercase">WhatsApp</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                    <input 
-                      type="tel" 
-                      placeholder="(11) 99999-9999"
-                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                      value={formData.phone}
-                      onChange={e => setFormData({...formData, phone: e.target.value})}
-                      disabled={!!user}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-400 uppercase">E-mail</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                    <input 
-                      type="email" 
-                      placeholder="joao@email.com"
-                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                      value={formData.email}
-                      onChange={e => setFormData({...formData, email: e.target.value})}
-                      disabled={!!user}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-400 uppercase">CPF</label>
-                  <div className="relative">
-                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                    <input 
-                      type="text" 
-                      placeholder="000.000.000-00"
-                      className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                      value={formData.cpf}
-                      onChange={e => setFormData({...formData, cpf: e.target.value})}
-                      disabled={!!user}
-                    />
-                  </div>
-                </div>
+
+                {(!userExists || user) && (
+                  <>
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                      <label className="text-xs font-bold text-zinc-400 uppercase">Nome Completo</label>
+                      <div className="relative">
+                        <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                        <input 
+                          type="text" 
+                          placeholder="Ex: João Silva"
+                          className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                          value={formData.name}
+                          onChange={e => setFormData({...formData, name: e.target.value})}
+                          disabled={!!user}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                      <label className="text-xs font-bold text-zinc-400 uppercase">WhatsApp</label>
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                        <input 
+                          type="tel" 
+                          placeholder="(11) 99999-9999"
+                          className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                          value={formData.phone}
+                          onChange={e => setFormData({...formData, phone: e.target.value})}
+                          disabled={!!user}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 {!user && userExists === true && (
                   <div className="md:col-span-2 space-y-4 animate-in fade-in slide-in-from-top-2">
                     <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center gap-3 text-blue-700 dark:text-blue-400">
@@ -459,9 +495,17 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
                       <p className="text-xs font-bold">Conta encontrada! Por favor, confirme sua senha para vincular o agendamento.</p>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-blue-500 uppercase flex items-center gap-2">
-                        <Lock size={14} /> Confirme sua Senha
-                      </label>
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-bold text-blue-500 uppercase flex items-center gap-2">
+                          <Lock size={14} /> Confirme sua Senha
+                        </label>
+                        <button 
+                          onClick={handleForgotPassword}
+                          className="text-[10px] font-bold text-zinc-400 hover:text-emerald-500 transition-colors uppercase tracking-widest"
+                        >
+                          Esqueci minha senha
+                        </button>
+                      </div>
                       <div className="relative">
                         <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
                         <input 
@@ -503,7 +547,11 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
                 <ChevronLeft size={20} /> Voltar
               </button>
               <button 
-                disabled={!formData.name || !formData.phone || !formData.cpf || !formData.password}
+                disabled={
+                  userExists === true 
+                    ? !formData.password 
+                    : (!formData.name || !formData.phone || !formData.email || !formData.cpf || !formData.password)
+                }
                 onClick={nextStep} 
                 className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-8 py-3 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50"
               >

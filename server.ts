@@ -315,7 +315,7 @@ async function startServer() {
 
     if (webhookUrl) {
       try {
-        const { data: shop } = await supabase.from("shops").select("name").eq("id", shop_id).single();
+        const { data: shop } = await supabase.from("shops").select("name, email").eq("id", shop_id).single();
         const { data: service } = await supabase.from("services").select("name").eq("id", service_id).single();
         
         await fetch(webhookUrl, {
@@ -325,6 +325,7 @@ async function startServer() {
             type: 'NEW_BOOKING',
             booking_id: booking.id,
             shop_name: shop?.name,
+            shop_email: shop?.email,
             service_name: service?.name,
             customer_name,
             customer_phone,
