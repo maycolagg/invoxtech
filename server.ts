@@ -2,8 +2,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
+import helmet from "helmet";
 import { createServer as createViteServer } from "vite";
-import { supabase } from "./server/supabase.ts";
+import { supabase } from "./server/supabase";
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -14,6 +15,60 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  const sanitize = (text: any) => {
+    if (typeof text !== 'string') return text;
+    // Sanitização básica via regex para evitar scripts simples
+    return text.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
+               .replace(/on\w+="[^"]*"/gim, "")
+               .replace(/javascript:[^"]*/gim, "");
+  };
+
+  // Middleware de Log de Acesso
+  app.use(async (req, res, next) => {
+    const start = Date.now();
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+
+    // Captura o fim da resposta para logar o status code
+    res.on('finish', async () => {
+      const duration = Date.now() - start;
+      const logData = {
+        timestamp: new Date().toISOString(),
+        method: req.method,
+        url: req.originalUrl,
+        ip: String(ip),
+        user_agent: userAgent,
+        status: res.statusCode,
+        duration_ms: duration
+      };
+
+      // Salva no banco de dados (Supabase)
+      try {
+        await supabase.from("access_logs").insert([logData]);
+      } catch (err) {
+        // Silencioso para não quebrar a requisição
+      }
+    });
+
+    next();
+  });
+
+  // Segurança: Adiciona headers de segurança (CSP, HSTS, etc)
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Vite precisa disso em dev
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https://*", "https://picsum.photos"],
+        connectSrc: ["'self'", "https://*", "wss://*"],
+        frameAncestors: ["'self'", "https://*.run.app", "https://ai.studio", "https://*.google.com"], // Permite o preview
+      },
+    },
+    frameguard: false, // Desativa X-Frame-Options para permitir o iframe do AI Studio
+  }));
 
   app.use(express.json());
 
@@ -40,6 +95,8 @@ async function startServer() {
   app.post("/api/auth/register", async (req, res) => {
     const { name, email, phone, cpf, password, role, category } = req.body;
     
+    const sanitizedName = sanitize(name);
+    
     // Verificar se já existe
     const { data: existing } = await supabase
       .from("users")
@@ -53,7 +110,15 @@ async function startServer() {
 
     const { data: newUser, error } = await supabase
       .from("users")
-      .insert([{ name, email, phone, cpf, password, role: role || 'customer', category: category || null }])
+      .insert([{ 
+        name: sanitizedName, 
+        email, 
+        phone, 
+        cpf, 
+        password, 
+        role: role || 'customer', 
+        category: category || null 
+      }])
       .select()
       .single();
 
@@ -170,9 +235,9 @@ async function startServer() {
     const { data, error } = await supabase
       .from("shops")
       .update({ 
-        name, 
-        address, 
-        description, 
+        name: sanitize(name), 
+        address: sanitize(address), 
+        description: sanitize(description), 
         business_hours, 
         social_links,
         category,
@@ -194,9 +259,9 @@ async function startServer() {
     const { data: shop, error } = await supabase
       .from("shops")
       .insert([{ 
-        name, 
-        address, 
-        description, 
+        name: sanitize(name), 
+        address: sanitize(address), 
+        description: sanitize(description), 
         image_url, 
         owner_id, 
         business_hours: JSON.stringify(business_hours),
@@ -226,7 +291,14 @@ async function startServer() {
     const { shop_id, name, description, price, duration_minutes, image_url } = req.body;
     const { data: service, error } = await supabase
       .from("services")
-      .insert([{ shop_id, name, description, price, duration_minutes, image_url }])
+      .insert([{ 
+        shop_id, 
+        name: sanitize(name), 
+        description: sanitize(description), 
+        price, 
+        duration_minutes, 
+        image_url 
+      }])
       .select()
       .single();
 
@@ -374,7 +446,7 @@ async function startServer() {
     const { status, notes } = req.body;
     const updateData: any = {};
     if (status) updateData.status = status;
-    if (notes !== undefined) updateData.notes = notes;
+    if (notes !== undefined) updateData.notes = sanitize(notes);
 
     const { data, error } = await supabase
       .from("bookings")
@@ -388,6 +460,17 @@ async function startServer() {
   });
 
   // Analytics
+  app.get("/api/admin/logs", async (req, res) => {
+    const { data: logs, error } = await supabase
+      .from("access_logs")
+      .select("*")
+      .order("timestamp", { ascending: false })
+      .limit(100);
+    
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(logs);
+  });
+
   app.get("/api/analytics/global", async (req, res) => {
     const { data: bookings } = await supabase.from("bookings").select("total_price, shop_id").neq("status", "cancelled");
     const { data: shops } = await supabase.from("shops").select("id, name");
@@ -433,7 +516,7 @@ async function startServer() {
     const { name, email, phone, cpf, password, role, shop_id } = req.body;
     const updateData: any = {};
     
-    if (name !== undefined) updateData.name = name;
+    if (name !== undefined) updateData.name = sanitize(name);
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
     if (cpf !== undefined) updateData.cpf = cpf;
@@ -482,11 +565,15 @@ async function startServer() {
 
   // --- VITE MIDDLEWARE ---
   if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
+    try {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } catch (viteErr) {
+      console.error("Erro ao iniciar Vite:", viteErr);
+    }
   } else {
     const distPath = path.join(__dirname, "dist");
     app.use(express.static(distPath));
@@ -503,4 +590,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error("ERRO FATAL NO SERVIDOR:", err);
+  process.exit(1);
+});

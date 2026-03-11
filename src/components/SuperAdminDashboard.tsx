@@ -3,7 +3,8 @@ import toast from 'react-hot-toast';
 import { 
   Users as UserIcon, Store, TrendingUp, DollarSign, 
   Calendar, ChevronRight, ArrowUpRight, BarChart3,
-  Search, Shield, Phone, Mail, Fingerprint, Sparkles
+  Search, Shield, Phone, Mail, Fingerprint, Sparkles,
+  Activity, Clock, Globe, Monitor
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -14,9 +15,10 @@ import ShopOwnerDashboard from './ShopOwnerDashboard';
 
 export default function SuperAdminDashboard() {
   const [stats, setStats] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'analytics' | 'shops' | 'users' | 'settings'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'shops' | 'users' | 'settings' | 'logs'>('analytics');
   const [shops, setShops] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedShopId, setSelectedShopId] = useState<number | null>(null);
   const [settings, setSettings] = useState<any>({ n8n_webhook_url: '', company_name: 'Invox Tech', logo_url: '/logo.png' });
@@ -37,6 +39,10 @@ export default function SuperAdminDashboard() {
     fetch('/api/admin/users')
       .then(res => res.json())
       .then(data => setUsers(data));
+
+    fetch('/api/admin/logs')
+      .then(res => res.json())
+      .then(data => setLogs(data));
   };
 
   useEffect(() => {
@@ -115,6 +121,17 @@ export default function SuperAdminDashboard() {
               )}
             >
               Configurações
+            </button>
+            <button 
+              onClick={() => { setActiveTab('logs'); setSelectedShopId(null); }}
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap", 
+                activeTab === 'logs' 
+                  ? "bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white" 
+                  : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              )}
+            >
+              Logs de Acesso
             </button>
           </div>
         </div>
@@ -470,6 +487,86 @@ export default function SuperAdminDashboard() {
               >
                 Atualizar Senha Master
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {activeTab === 'logs' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-3xl font-black dark:text-white">Logs de Segurança</h3>
+              <p className="text-zinc-500 mt-1">Rastreamento em tempo real de acessos e atividades</p>
+            </div>
+            <button 
+              onClick={fetchData}
+              className="p-3 rounded-xl bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all"
+            >
+              <Activity size={20} />
+            </button>
+          </div>
+
+          <div className="bg-white dark:bg-[#141417] border border-zinc-100 dark:border-white/5 rounded-[40px] overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-bottom border-zinc-50 dark:border-white/5">
+                    <th className="px-8 py-6 text-xs font-black text-zinc-400 uppercase tracking-widest">Horário</th>
+                    <th className="px-8 py-6 text-xs font-black text-zinc-400 uppercase tracking-widest">IP</th>
+                    <th className="px-8 py-6 text-xs font-black text-zinc-400 uppercase tracking-widest">Método / URL</th>
+                    <th className="px-8 py-6 text-xs font-black text-zinc-400 uppercase tracking-widest">Status</th>
+                    <th className="px-8 py-6 text-xs font-black text-zinc-400 uppercase tracking-widest">Dispositivo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50 dark:divide-white/5">
+                  {logs.map((log, i) => (
+                    <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors">
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-2 text-sm font-bold dark:text-white">
+                          <Clock size={14} className="text-zinc-400" />
+                          {new Date(log.timestamp).toLocaleString('pt-BR')}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-2 text-sm font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                          <Globe size={14} />
+                          {log.ip}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="space-y-1">
+                          <span className={cn(
+                            "px-2 py-0.5 rounded text-[10px] font-black uppercase",
+                            log.method === 'POST' ? "bg-blue-500/10 text-blue-500" :
+                            log.method === 'PUT' ? "bg-amber-500/10 text-amber-500" :
+                            log.method === 'DELETE' ? "bg-rose-500/10 text-rose-500" :
+                            "bg-zinc-500/10 text-zinc-500"
+                          )}>
+                            {log.method}
+                          </span>
+                          <p className="text-xs font-bold text-zinc-500 truncate max-w-[200px]">{log.url}</p>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <span className={cn(
+                          "px-3 py-1 rounded-full text-xs font-black",
+                          log.status >= 200 && log.status < 300 ? "bg-emerald-500/10 text-emerald-600" :
+                          log.status >= 400 ? "bg-rose-500/10 text-rose-600" :
+                          "bg-zinc-500/10 text-zinc-600"
+                        )}>
+                          {log.status}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-2 text-xs text-zinc-400 font-bold truncate max-w-[200px]">
+                          <Monitor size={14} />
+                          {log.user_agent}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
