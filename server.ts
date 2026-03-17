@@ -3,6 +3,8 @@ dotenv.config();
 
 import express from "express";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { z } from "zod";
 import { createServer as createViteServer } from "vite";
 import { supabase } from "./server/supabase";
 
@@ -14,6 +16,7 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
+  app.set('trust proxy', 1);
   const PORT = 3000;
 
   const sanitize = (text: any) => {
@@ -24,10 +27,36 @@ async function startServer() {
                .replace(/javascript:[^"]*/gim, "");
   };
 
+  // --- LGPD: IP Anonymization ---
+  const anonymizeIp = (ip: string) => {
+    if (!ip) return "0.0.0.0";
+    if (ip.includes(':')) { // IPv6
+      return ip.split(':').slice(0, 3).join(':') + ':xxxx:xxxx:xxxx:xxxx:xxxx';
+    }
+    // IPv4: 192.168.1.1 -> 192.168.1.xxx
+    return ip.split('.').slice(0, 3).join('.') + '.xxx';
+  };
+
+  // --- RATE LIMITING ---
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Muitas requisições. Tente novamente mais tarde." }
+  });
+
+  const authLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // Limit each IP to 10 login attempts per hour
+    message: { error: "Muitas tentativas de login. Tente novamente em 1 hora." }
+  });
+
   // Middleware de Log de Acesso
   app.use(async (req, res, next) => {
     const start = Date.now();
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const ip = anonymizeIp(String(rawIp));
     const userAgent = req.headers['user-agent'];
 
     // Captura o fim da resposta para logar o status code
@@ -71,31 +100,74 @@ async function startServer() {
   }));
 
   app.use(express.json());
+  app.use("/api/", apiLimiter);
+
+  // --- SCHEMAS DE VALIDAÇÃO (ZOD) ---
+  const loginSchema = z.object({
+    email: z.string().min(1, "E-mail ou CPF é obrigatório"),
+    password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres")
+  });
+
+  const registerSchema = z.object({
+    name: z.string().min(3, "Nome muito curto"),
+    email: z.string().email("E-mail inválido"),
+    phone: z.string().optional(),
+    cpf: z.string().min(11, "CPF inválido"),
+    password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+    role: z.enum(['admin', 'owner', 'customer']).optional(),
+    category: z.string().optional()
+  });
+
+  // --- MIDDLEWARES DE PROTEÇÃO ---
+  const requireAdmin = (req: any, res: any, next: any) => {
+    const userRole = req.headers['x-user-role'];
+    if (userRole !== 'admin') {
+      return res.status(403).json({ error: "Acesso negado. Apenas administradores podem acessar esta rota." });
+    }
+    next();
+  };
+
+  const requireOwnerOrAdmin = (req: any, res: any, next: any) => {
+    const userRole = req.headers['x-user-role'];
+    if (userRole !== 'admin' && userRole !== 'owner') {
+      return res.status(403).json({ error: "Acesso negado. Permissão insuficiente." });
+    }
+    next();
+  };
 
   // --- API ROUTES ---
 
   // Auth
-  app.post("/api/auth/login", async (req, res) => {
-    const { email, password } = req.body;
-    // Permitir login por E-mail ou CPF
-    const { data: user, error } = await supabase
-      .from("users")
-      .select("*")
-      .or(`email.eq.${email},cpf.eq.${email}`)
-      .eq("password", password)
-      .maybeSingle();
+  app.post("/api/auth/login", authLimiter, async (req, res) => {
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+      // Permitir login por E-mail ou CPF
+      const { data: user, error } = await supabase
+        .from("users")
+        .select("*")
+        .or(`email.eq.${email},cpf.eq.${email}`)
+        .eq("password", password)
+        .maybeSingle();
 
-    if (user) {
-      res.json(user);
-    } else {
-      res.status(401).json({ error: "Credenciais inválidas. Verifique seu e-mail/CPF e senha." });
+      if (user) {
+        res.json(user);
+      } else {
+        res.status(401).json({ error: "Credenciais inválidas. Verifique seu e-mail/CPF e senha." });
+      }
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ error: err.issues[0].message });
+      }
+      res.status(500).json({ error: "Erro interno no servidor" });
     }
   });
 
   app.post("/api/auth/register", async (req, res) => {
-    const { name, email, phone, cpf, password, role, category } = req.body;
-    
-    const sanitizedName = sanitize(name);
+    try {
+      const validatedData = registerSchema.parse(req.body);
+      const { name, email, phone, cpf, password, role, category } = validatedData;
+      
+      const sanitizedName = sanitize(name);
     
     // Verificar se já existe
     const { data: existing } = await supabase
@@ -156,6 +228,12 @@ async function startServer() {
     }
 
     res.json(newUser);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ error: err.issues[0].message });
+      }
+      res.status(500).json({ error: "Erro interno no servidor" });
+    }
   });
 
   app.post("/api/auth/forgot-password", async (req, res) => {
@@ -212,7 +290,16 @@ async function startServer() {
   // Shops
   app.get("/api/shops", async (req, res) => {
     const { data: shops, error } = await supabase.from("shops").select("*");
-    res.json(shops || []);
+    const userRole = req.headers['x-user-role'];
+    
+    // Ocultar dados sensíveis para não-admins
+    const formatted = shops?.map(s => {
+      if (userRole === 'admin') return s;
+      const { cnpj_cpf, ...rest } = s;
+      return rest;
+    });
+    
+    res.json(formatted || []);
   });
 
   app.get("/api/shops/:id", async (req, res) => {
@@ -227,10 +314,20 @@ async function startServer() {
       .select("*")
       .eq("shop_id", req.params.id);
 
-    res.json({ ...shop, services: services || [] });
+    const userRole = req.headers['x-user-role'];
+    let finalShop = shop;
+    
+    if (userRole !== 'admin' && userRole !== 'owner') {
+      if (shop) {
+        const { cnpj_cpf, ...rest } = shop;
+        finalShop = rest;
+      }
+    }
+
+    res.json({ ...finalShop, services: services || [] });
   });
 
-  app.put("/api/shops/:id", async (req, res) => {
+  app.put("/api/shops/:id", requireOwnerOrAdmin, async (req, res) => {
     const { name, address, description, business_hours, social_links, category, cnpj_cpf, phone, email, type } = req.body;
     const { data, error } = await supabase
       .from("shops")
@@ -254,7 +351,7 @@ async function startServer() {
     res.json(data);
   });
 
-  app.post("/api/shops", async (req, res) => {
+  app.post("/api/shops", requireAdmin, async (req, res) => {
     const { name, address, description, image_url, owner_id, business_hours, category, cnpj_cpf, phone, email, type } = req.body;
     const { data: shop, error } = await supabase
       .from("shops")
@@ -287,7 +384,7 @@ async function startServer() {
     res.json(services || []);
   });
 
-  app.post("/api/services", async (req, res) => {
+  app.post("/api/services", requireOwnerOrAdmin, async (req, res) => {
     const { shop_id, name, description, price, duration_minutes, image_url } = req.body;
     const { data: service, error } = await supabase
       .from("services")
@@ -422,7 +519,7 @@ async function startServer() {
     res.json(booking);
   });
 
-  app.get("/api/bookings/shop/:shopId", async (req, res) => {
+  app.get("/api/bookings/shop/:shopId", requireOwnerOrAdmin, async (req, res) => {
     const { data: bookings, error } = await supabase
       .from("bookings")
       .select(`
@@ -442,7 +539,7 @@ async function startServer() {
     res.json(formatted || []);
   });
 
-  app.put("/api/bookings/:id", async (req, res) => {
+  app.put("/api/bookings/:id", requireOwnerOrAdmin, async (req, res) => {
     const { status, notes } = req.body;
     const updateData: any = {};
     if (status) updateData.status = status;
@@ -460,7 +557,7 @@ async function startServer() {
   });
 
   // Analytics
-  app.get("/api/admin/logs", async (req, res) => {
+  app.get("/api/admin/logs", requireAdmin, async (req, res) => {
     const { data: logs, error } = await supabase
       .from("access_logs")
       .select("*")
@@ -471,7 +568,7 @@ async function startServer() {
     res.json(logs);
   });
 
-  app.get("/api/analytics/global", async (req, res) => {
+  app.get("/api/analytics/global", requireAdmin, async (req, res) => {
     const { data: bookings } = await supabase.from("bookings").select("total_price, shop_id").neq("status", "cancelled");
     const { data: shops } = await supabase.from("shops").select("id, name");
 
@@ -493,7 +590,7 @@ async function startServer() {
   });
 
   // User Management for Super Admin
-  app.get("/api/admin/users", async (req, res) => {
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
     const { data: users, error } = await supabase
       .from("users")
       .select(`
@@ -512,7 +609,7 @@ async function startServer() {
     res.json(formatted || []);
   });
 
-  app.put("/api/admin/users/:id", async (req, res) => {
+  app.put("/api/admin/users/:id", requireAdmin, async (req, res) => {
     const { name, email, phone, cpf, password, role, shop_id } = req.body;
     const updateData: any = {};
     
@@ -538,14 +635,20 @@ async function startServer() {
   // Global Settings
   app.get("/api/settings", async (req, res) => {
     const { data: settings } = await supabase.from("global_settings").select("*");
+    const userRole = req.headers['x-user-role'];
+    
     const settingsObj = settings?.reduce((acc: any, curr: any) => {
+      // Ocultar URL do webhook para não-admins
+      if (curr.key === 'n8n_webhook_url' && userRole !== 'admin') {
+        return acc;
+      }
       acc[curr.key] = curr.value;
       return acc;
     }, {}) || {};
     res.json(settingsObj);
   });
 
-  app.post("/api/settings", async (req, res) => {
+  app.post("/api/settings", requireAdmin, async (req, res) => {
     const { settings } = req.body;
     for (const [key, value] of Object.entries(settings)) {
       await supabase.from("global_settings").upsert({ key, value });
@@ -554,7 +657,7 @@ async function startServer() {
   });
 
   // Update Shop Social Links
-  app.post("/api/shops/:id/social", async (req, res) => {
+  app.post("/api/shops/:id/social", requireOwnerOrAdmin, async (req, res) => {
     const { social_links } = req.body;
     await supabase
       .from("shops")

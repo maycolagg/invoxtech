@@ -13,7 +13,7 @@ import {
 import { cn } from '../types';
 import ShopOwnerDashboard from './ShopOwnerDashboard';
 
-export default function SuperAdminDashboard() {
+export default function SuperAdminDashboard({ user }: { user: any }) {
   const [stats, setStats] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'analytics' | 'shops' | 'users' | 'settings' | 'logs'>('analytics');
   const [shops, setShops] = useState<any[]>([]);
@@ -24,25 +24,35 @@ export default function SuperAdminDashboard() {
   const [settings, setSettings] = useState<any>({ n8n_webhook_url: '', company_name: 'Invox Tech', logo_url: '/logo.png' });
 
   const fetchData = () => {
-    fetch('/api/analytics/global')
+    const headers = {
+      'x-user-role': user?.role || ''
+    };
+
+    fetch('/api/analytics/global', { headers })
       .then(res => res.json())
       .then(data => setStats(data));
     
-    fetch('/api/settings')
+    fetch('/api/settings', { headers })
       .then(res => res.json())
       .then(data => setSettings(data));
 
-    fetch('/api/shops')
+    fetch('/api/shops', { headers })
       .then(res => res.json())
       .then(data => setShops(data));
 
-    fetch('/api/admin/users')
+    fetch('/api/admin/users', { headers })
       .then(res => res.json())
-      .then(data => setUsers(data));
+      .then(data => {
+        if (Array.isArray(data)) setUsers(data);
+        else setUsers([]);
+      });
 
-    fetch('/api/admin/logs')
+    fetch('/api/admin/logs', { headers })
       .then(res => res.json())
-      .then(data => setLogs(data));
+      .then(data => {
+        if (Array.isArray(data)) setLogs(data);
+        else setLogs([]);
+      });
   };
 
   useEffect(() => {
@@ -52,7 +62,10 @@ export default function SuperAdminDashboard() {
   const saveSettings = async () => {
     const res = await fetch('/api/settings', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-user-role': user?.role || ''
+      },
       body: JSON.stringify({ settings })
     });
     if (res.ok) {
@@ -69,7 +82,7 @@ export default function SuperAdminDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-zinc-900 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
-            <img src={settings.logo_url} alt={settings.company_name} className="w-full h-full object-cover" />
+            <img src={settings.logo_url || null} alt={settings.company_name} className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="text-4xl font-black tracking-tight dark:text-white">Painel Master</h1>
@@ -250,7 +263,7 @@ export default function SuperAdminDashboard() {
                   <div className="flex justify-between items-start">
                     <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-white/5 flex items-center justify-center overflow-hidden">
                       {shop.image_url ? (
-                        <img src={shop.image_url} alt={shop.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        <img src={shop.image_url || null} alt={shop.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       ) : (
                         <Store className="text-zinc-400" />
                       )}
@@ -387,7 +400,10 @@ export default function SuperAdminDashboard() {
                         if (!input.value) return toast.error('Digite a nova senha');
                         const res = await fetch(`/api/admin/users/${u.id}`, {
                           method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers: { 
+                            'Content-Type': 'application/json',
+                            'x-user-role': user?.role || ''
+                          },
                           body: JSON.stringify({ password: input.value })
                         });
                         if (res.ok) {

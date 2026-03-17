@@ -134,7 +134,7 @@ export default function App() {
               theme === 'dark' ? "bg-[#141417] border border-white/5" : "bg-zinc-900"
             )}>
               <img 
-                src={logoUrl} 
+                src={logoUrl || null} 
                 alt={companyName} 
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -313,6 +313,7 @@ export default function App() {
           <LandingPage 
             onSelectShop={(id) => { setSelectedShopId(id); setView('booking'); }} 
             companyName={companyName}
+            userRole={user?.role}
           />
         )}
 
@@ -324,12 +325,12 @@ export default function App() {
 
         {view === 'admin' && user?.role === 'admin' && (
           <div className="max-w-7xl mx-auto px-6 py-12">
-            <SuperAdminDashboard />
+            <SuperAdminDashboard user={user} />
           </div>
         )}
 
         {view === 'owner' && user?.role === 'owner' && user.shop_id && (
-          <ShopOwnerDashboard shopId={user.shop_id} userEmail={user.email} />
+          <ShopOwnerDashboard shopId={user.shop_id} userEmail={user.email} userRole={user.role} />
         )}
 
         {view === 'reset-password' && (
@@ -552,7 +553,7 @@ export default function App() {
               theme === 'dark' ? "bg-[#141417] border border-white/5" : "bg-zinc-900"
             )}>
               <img 
-                src={logoUrl} 
+                src={logoUrl || null} 
                 alt={companyName} 
                 className="w-full h-full object-cover"
                 onError={(e) => {

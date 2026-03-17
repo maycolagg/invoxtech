@@ -12,7 +12,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn, type Booking, type Service, type Shop } from '../types';
 import toast from 'react-hot-toast';
 
-export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEmail }: { shopId: number, isAdminView?: boolean, userEmail?: string }) {
+export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEmail, userRole }: { shopId: number, isAdminView?: boolean, userEmail?: string, userRole?: string }) {
   const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'settings'>('bookings');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -55,15 +55,17 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
   ];
 
   useEffect(() => {
-    fetch(`/api/bookings/shop/${shopId}`)
+    const headers = { 'x-user-role': userRole || '' };
+
+    fetch(`/api/bookings/shop/${shopId}`, { headers })
       .then(res => res.json())
       .then(data => setBookings(data));
     
-    fetch(`/api/services/${shopId}`)
+    fetch(`/api/services/${shopId}`, { headers })
       .then(res => res.json())
       .then(data => setServices(data));
 
-    fetch(`/api/shops/${shopId}`)
+    fetch(`/api/shops/${shopId}`, { headers })
       .then(res => res.json())
       .then(data => {
         setShop(data);
@@ -85,17 +87,20 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
         }
       });
 
-    fetch('/api/settings')
+    fetch('/api/settings', { headers })
       .then(res => res.json())
       .then(data => {
         if (data) setCompanySettings(data);
       });
-  }, [shopId]);
+  }, [shopId, userRole]);
 
   const updateBooking = async (id: number, updates: Partial<Booking>) => {
     const res = await fetch(`/api/bookings/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-user-role': userRole || ''
+      },
       body: JSON.stringify(updates)
     });
 
@@ -124,7 +129,10 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
 
     const res = await fetch(`/api/shops/${shopId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-user-role': userRole || ''
+      },
       body: JSON.stringify(updatedShop)
     });
 
@@ -164,7 +172,10 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
 
     const res = await fetch('/api/services', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-user-role': userRole || ''
+      },
       body: JSON.stringify(newService)
     });
 
@@ -172,7 +183,9 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
       toast.success('Serviço adicionado!');
       setShowAddService(false);
       // Refresh services
-      fetch(`/api/services/${shopId}`).then(res => res.json()).then(data => setServices(data));
+      fetch(`/api/services/${shopId}`, {
+        headers: { 'x-user-role': userRole || '' }
+      }).then(res => res.json()).then(data => setServices(data));
     }
   };
 
@@ -182,7 +195,7 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
       <aside className="hidden lg:flex w-64 border-r p-6 flex-col gap-8 transition-all duration-500 bg-white dark:bg-[#141417] border-zinc-200 dark:border-white/5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-zinc-900 dark:bg-emerald-600 overflow-hidden">
-            <img src={companySettings.logo_url} alt={companySettings.company_name} className="w-full h-full object-cover" />
+            <img src={companySettings.logo_url || null} alt={companySettings.company_name} className="w-full h-full object-cover" />
           </div>
           <span className="font-black text-xl tracking-tight dark:text-white">{companySettings.company_name}</span>
         </div>

@@ -7,16 +7,18 @@ import {
 } from 'lucide-react';
 import { cn, type Shop } from '../types';
 
-export default function LandingPage({ onSelectShop, companyName }: { onSelectShop: (id: number) => void, companyName: string }) {
+export default function LandingPage({ onSelectShop, companyName, userRole }: { onSelectShop: (id: number) => void, companyName: string, userRole?: string }) {
   const [shops, setShops] = useState<Shop[]>([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
 
   useEffect(() => {
-    fetch('/api/shops')
+    fetch('/api/shops', {
+      headers: { 'x-user-role': userRole || '' }
+    })
       .then(res => res.json())
       .then(data => setShops(data));
-  }, []);
+  }, [userRole]);
 
   const categories = [
     { id: 'all', label: 'Todos', icon: <Sparkles size={18} /> },
