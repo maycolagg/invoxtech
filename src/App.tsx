@@ -657,6 +657,7 @@ export default function App() {
             <a href="#" className="hover:text-emerald-500 transition-colors">Suporte</a>
           </div>
         </div>
+          <p className="text-zinc-400 text-sm font-medium">SV17.03-IV</p>
       </footer>
     </div>
     </ErrorBoundary>
