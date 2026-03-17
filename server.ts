@@ -100,6 +100,17 @@ async function startServer() {
   }));
 
   app.use(express.json());
+  
+  // --- PROTEÇÃO GLOBAL DE API ---
+  // Bloqueia acesso direto via navegador para TODAS as rotas de API
+  app.use("/api", (req, res, next) => {
+    // Se o navegador pedir HTML (acesso direto) e for um GET, barramos.
+    if (req.accepts('html') && req.method === 'GET') {
+      return res.redirect('/?error=403&title=Acesso Restrito&message=As APIs da Invox Tech são protegidas e não podem ser acessadas diretamente pelo navegador.');
+    }
+    next();
+  });
+
   app.use("/api/", apiLimiter);
 
   // --- SCHEMAS DE VALIDAÇÃO (ZOD) ---
@@ -295,14 +306,20 @@ async function startServer() {
 
   // Shops
   app.get("/api/shops", async (req, res) => {
-    const { data: shops, error } = await supabase.from("shops").select("*");
     const userRole = req.headers['x-user-role'];
+    const { data: shops, error } = await supabase.from("shops").select("*");
     
+    // Se não houver cabeçalho de identificação do app, negamos (Proteção contra fetch externo simples)
+    if (!userRole && !req.headers['x-app-integrity']) {
+      return res.status(401).json({ error: "Acesso não autorizado." });
+    }
+
     // Ocultar dados sensíveis para não-admins
     const formatted = shops?.map(s => {
       if (userRole === 'admin') return s;
-      const { cnpj_cpf, ...rest } = s;
-      return rest;
+      // Removemos TUDO que não é público para o cliente
+      const { cnpj_cpf, email, phone, owner_id, created_at, ...publicData } = s;
+      return publicData;
     });
     
     res.json(formatted || []);
@@ -640,15 +657,24 @@ async function startServer() {
 
   // Global Settings
   app.get("/api/settings", async (req, res) => {
-    const { data: settings } = await supabase.from("global_settings").select("*");
     const userRole = req.headers['x-user-role'];
     
+    // Proteção básica: apenas o app pode pedir as settings
+    if (!userRole && !req.headers['x-app-integrity']) {
+      return res.status(401).json({ error: "Acesso não autorizado." });
+    }
+
+    const { data: settings } = await supabase.from("global_settings").select("*");
+    
     const settingsObj = settings?.reduce((acc: any, curr: any) => {
-      // Ocultar URL do webhook para não-admins
-      if (curr.key === 'n8n_webhook_url' && userRole !== 'admin') {
-        return acc;
+      // Lista branca de chaves públicas
+      const publicKeys = ['company_name', 'logo_url', 'primary_color'];
+      
+      if (userRole === 'admin') {
+        acc[curr.key] = curr.value;
+      } else if (publicKeys.includes(curr.key)) {
+        acc[curr.key] = curr.value;
       }
-      acc[curr.key] = curr.value;
       return acc;
     }, {}) || {};
     res.json(settingsObj);
