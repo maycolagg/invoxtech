@@ -4,6 +4,9 @@ import BookingFlow from './components/BookingFlow';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import ShopOwnerDashboard from './components/ShopOwnerDashboard';
 import LandingPage from './components/LandingPage';
+import LoadingScreen from './components/LoadingScreen';
+import ErrorScreen from './components/ErrorScreen';
+import ErrorBoundary from './components/ErrorBoundary';
 import { 
   Car, Shield, Clock, MapPin, 
   ChevronRight, Star, Sparkles,
@@ -116,11 +119,16 @@ export default function App() {
   };
 
   return (
-    <div className={cn(
-      "min-h-screen font-sans transition-all duration-500",
-      theme === 'dark' ? "bg-[#09090b] text-zinc-100" : "bg-white text-zinc-900"
-    )}>
-      <Toaster position="top-right" />
+    <ErrorBoundary>
+      <div className={cn(
+        "min-h-screen font-sans transition-all duration-500",
+        theme === 'dark' ? "bg-[#09090b] text-zinc-100" : "bg-white text-zinc-900"
+      )}>
+        <Toaster position="top-right" />
+        
+        <AnimatePresence>
+          {loading && <LoadingScreen />}
+        </AnimatePresence>
       
       {/* Header */}
       <header className={cn(
@@ -567,7 +575,7 @@ export default function App() {
               theme === 'dark' ? "text-white" : "text-zinc-900"
             )}>{companyName}</span>
           </div>
-          <p className="text-zinc-400 text-sm font-medium">© 2026 {companyName}. Todos os direitos reservados. StV.16.03-XXII</p>
+          <p className="text-zinc-400 text-sm font-medium">© 2026 {companyName}. Todos os direitos reservados.</p>
           <div className="flex gap-6 text-sm font-bold text-zinc-500">
             <a href="#" className="hover:text-emerald-500 transition-colors">Termos</a>
             <a href="#" className="hover:text-emerald-500 transition-colors">Privacidade</a>
@@ -576,5 +584,6 @@ export default function App() {
         </div>
       </footer>
     </div>
+    </ErrorBoundary>
   );
 }
