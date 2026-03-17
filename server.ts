@@ -104,8 +104,10 @@ async function startServer() {
   // --- PROTEÇÃO GLOBAL DE API ---
   // Bloqueia acesso direto via navegador para TODAS as rotas de API
   app.use("/api", (req, res, next) => {
-    // Se o navegador pedir HTML (acesso direto) e for um GET, barramos.
-    if (req.accepts('html') && req.method === 'GET') {
+    // Detecta se é uma navegação direta pelo navegador (URL digitada ou link externo)
+    const isDirectNavigation = req.headers['sec-fetch-mode'] === 'navigate';
+    
+    if (isDirectNavigation && req.method === 'GET') {
       return res.redirect('/?error=403&title=Acesso Restrito&message=As APIs da Invox Tech são protegidas e não podem ser acessadas diretamente pelo navegador.');
     }
     next();
@@ -716,7 +718,8 @@ async function startServer() {
   // SPA fallback: serve index.html for any non-API routes
   app.get("*", (req, res, next) => {
     if (req.path.startsWith('/api')) {
-      if (req.accepts('html')) {
+      const isDirectNavigation = req.headers['sec-fetch-mode'] === 'navigate';
+      if (isDirectNavigation) {
         return res.redirect('/?error=404&title=Coordenadas Inválidas&message=Essa rota não existe em nosso mapa estelar.');
       }
       return res.status(404).json({ error: "Rota de API não encontrada." });

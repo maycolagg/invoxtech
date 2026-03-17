@@ -46,7 +46,10 @@ export default function App() {
 
   useEffect(() => {
     fetch('/api/settings', {
-      headers: { 'x-app-integrity': 'invox-core-v1' }
+      headers: { 
+        'x-app-integrity': 'invox-core-v1',
+        'Accept': 'application/json'
+      }
     })
       .then(async res => {
         if (await handleApiError(res)) return;
@@ -97,7 +100,10 @@ export default function App() {
     const shopParam = params.get('shop');
 
     fetch('/api/shops', {
-      headers: { 'x-app-integrity': 'invox-core-v1' }
+      headers: { 
+        'x-app-integrity': 'invox-core-v1',
+        'Accept': 'application/json'
+      }
     })
       .then(async res => {
         if (await handleApiError(res)) return;
@@ -650,7 +656,6 @@ export default function App() {
             <a href="#" className="hover:text-emerald-500 transition-colors">Privacidade</a>
             <a href="#" className="hover:text-emerald-500 transition-colors">Suporte</a>
           </div>
-          <p className="text-zinc-400 text-sm font-medium">SV16.03-XI.XX</p>
         </div>
       </footer>
     </div>
