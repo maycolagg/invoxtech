@@ -650,7 +650,7 @@ export default function App() {
               theme === 'dark' ? "text-white" : "text-zinc-900"
             )}>{companyName}</span>
           </div>
-          <p className="text-zinc-400 text-sm font-medium">© 2026 <a href="instagram.com/invoxtech" target="_blank" className="bg-emerald-500">{companyName}</a>. Todos os direitos reservados.</p>
+          <p className="text-zinc-400 text-sm font-medium">© 2026 <a href="https://instagram.com/invoxtech" target="_blank" className="text-emerald-500">{companyName}</a>. Todos os direitos reservados.</p>
           <div className="flex gap-6 text-sm font-bold text-zinc-500">
             <a href="#" className="hover:text-emerald-500 transition-colors">Termos</a>
             <a href="#" className="hover:text-emerald-500 transition-colors">Privacidade</a>
