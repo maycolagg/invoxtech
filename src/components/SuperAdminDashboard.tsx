@@ -25,20 +25,29 @@ export default function SuperAdminDashboard({ user }: { user: any }) {
 
   const fetchData = () => {
     const headers = {
-      'x-user-role': user?.role || ''
+      'x-user-role': user?.role || '',
+      'x-app-integrity': 'invox-core-v1',
+      'Accept': 'application/json'
     };
 
     fetch('/api/analytics/global', { headers })
       .then(res => res.json())
-      .then(data => setStats(data));
+      .then(data => {
+        if (data && !data.error) setStats(data);
+      });
     
     fetch('/api/settings', { headers })
       .then(res => res.json())
-      .then(data => setSettings(data));
+      .then(data => {
+        if (data && !data.error) setSettings(data);
+      });
 
     fetch('/api/shops', { headers })
       .then(res => res.json())
-      .then(data => setShops(data));
+      .then(data => {
+        if (Array.isArray(data)) setShops(data);
+        else setShops([]);
+      });
 
     fetch('/api/admin/users', { headers })
       .then(res => res.json())

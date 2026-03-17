@@ -54,17 +54,35 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
   };
 
   useEffect(() => {
-    fetch(`/api/shops/${shopId}`)
+    fetch(`/api/shops/${shopId}`, {
+      headers: { 
+        'x-app-integrity': 'invox-core-v1',
+        'Accept': 'application/json'
+      }
+    })
       .then(res => res.json())
-      .then(data => setShop(data));
+      .then(data => {
+        if (data && !data.error) setShop(data);
+      });
   }, [shopId]);
 
   useEffect(() => {
     if (selectedDate) {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      fetch(`/api/bookings/availability?shop_id=${shopId}&date=${dateStr}`)
+      fetch(`/api/bookings/availability?shop_id=${shopId}&date=${dateStr}`, {
+        headers: { 
+          'x-app-integrity': 'invox-core-v1',
+          'Accept': 'application/json'
+        }
+      })
         .then(res => res.json())
-        .then(data => setBookedTimes(data.map((b: any) => b.start_time)));
+        .then(data => {
+          if (Array.isArray(data)) {
+            setBookedTimes(data.map((b: any) => b.start_time));
+          } else {
+            setBookedTimes([]);
+          }
+        });
     }
   }, [selectedDate, shopId]);
 
@@ -90,10 +108,17 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
     if (user) return; // Skip check if already logged in
     if (formData.email || formData.cpf) {
       const timer = setTimeout(() => {
-        fetch(`/api/auth/check-user?email=${formData.email}&cpf=${formData.cpf}`)
+        fetch(`/api/auth/check-user?email=${formData.email}&cpf=${formData.cpf}`, {
+          headers: { 
+            'x-app-integrity': 'invox-core-v1',
+            'Accept': 'application/json'
+          }
+        })
           .then(res => res.json())
           .then(data => {
-            setUserExists(data.exists);
+            if (data && data.exists !== undefined) {
+              setUserExists(data.exists);
+            }
           });
       }, 500);
       return () => clearTimeout(timer);

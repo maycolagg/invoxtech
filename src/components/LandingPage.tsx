@@ -14,10 +14,25 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
 
   useEffect(() => {
     fetch('/api/shops', {
-      headers: { 'x-user-role': userRole || '' }
+      headers: { 
+        'x-user-role': userRole || '',
+        'x-app-integrity': 'invox-core-v1',
+        'Accept': 'application/json'
+      }
     })
       .then(res => res.json())
-      .then(data => setShops(data));
+      .then(data => {
+        if (Array.isArray(data)) {
+          setShops(data);
+        } else {
+          console.error("Invalid shops data received:", data);
+          setShops([]);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch shops:", err);
+        setShops([]);
+      });
   }, [userRole]);
 
   const categories = [
@@ -28,12 +43,12 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
     { id: 'cafe', label: 'Café', icon: <Coffee size={18} /> },
   ];
 
-  const filteredShops = shops.filter(shop => {
+  const filteredShops = Array.isArray(shops) ? shops.filter(shop => {
     const matchesSearch = shop.name.toLowerCase().includes(search.toLowerCase()) || 
                          shop.address.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = category === 'all' || shop.category === category;
     return matchesSearch && matchesCategory;
-  });
+  }) : [];
 
   return (
     <div className="space-y-20 pb-20">

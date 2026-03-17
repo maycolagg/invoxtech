@@ -55,42 +55,61 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
   ];
 
   useEffect(() => {
-    const headers = { 'x-user-role': userRole || '' };
+    const headers = { 
+      'x-user-role': userRole || '',
+      'x-app-integrity': 'invox-core-v1',
+      'Accept': 'application/json'
+    };
 
     fetch(`/api/bookings/shop/${shopId}`, { headers })
       .then(res => res.json())
-      .then(data => setBookings(data));
+      .then(data => {
+        if (Array.isArray(data)) setBookings(data);
+        else setBookings([]);
+      });
     
     fetch(`/api/services/${shopId}`, { headers })
       .then(res => res.json())
-      .then(data => setServices(data));
+      .then(data => {
+        if (Array.isArray(data)) setServices(data);
+        else setServices([]);
+      });
 
     fetch(`/api/shops/${shopId}`, { headers })
       .then(res => res.json())
       .then(data => {
-        setShop(data);
-        if (data.social_links) {
-          const links = JSON.parse(data.social_links);
-          // Handle old format if necessary, or just assume new format
-          if (Array.isArray(links)) {
-            setSocialLinks(links);
-          } else {
-            // Convert old object format to new array format
-            const newLinks = Object.entries(links)
-              .filter(([_, value]) => !!value)
-              .map(([type, value]) => ({ type, value: value as string }));
-            setSocialLinks(newLinks);
+        if (data && !data.error) {
+          setShop(data);
+          if (data.social_links) {
+            try {
+              const links = JSON.parse(data.social_links);
+              if (Array.isArray(links)) {
+                setSocialLinks(links);
+              } else {
+                const newLinks = Object.entries(links)
+                  .filter(([_, value]) => !!value)
+                  .map(([type, value]) => ({ type, value: value as string }));
+                setSocialLinks(newLinks);
+              }
+            } catch (e) {
+              console.error("Error parsing social links:", e);
+              setSocialLinks([]);
+            }
           }
-        }
-        if (data.business_hours) {
-          setBusinessHours(JSON.parse(data.business_hours));
+          if (data.business_hours) {
+            try {
+              setBusinessHours(JSON.parse(data.business_hours));
+            } catch (e) {
+              console.error("Error parsing business hours:", e);
+            }
+          }
         }
       });
 
     fetch('/api/settings', { headers })
       .then(res => res.json())
       .then(data => {
-        if (data) setCompanySettings(data);
+        if (data && !data.error) setCompanySettings(data);
       });
   }, [shopId, userRole]);
 
