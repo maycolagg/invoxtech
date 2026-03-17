@@ -122,6 +122,9 @@ async function startServer() {
   const requireAdmin = (req: any, res: any, next: any) => {
     const userRole = req.headers['x-user-role'];
     if (userRole !== 'admin') {
+      if (req.accepts('html')) {
+        return res.redirect('/?error=403&title=Acesso Proibido&message=Apenas comandantes da Invox Tech podem acessar esta área.');
+      }
       return res.status(403).json({ error: "Acesso negado. Apenas administradores podem acessar esta rota." });
     }
     next();
@@ -130,6 +133,9 @@ async function startServer() {
   const requireOwnerOrAdmin = (req: any, res: any, next: any) => {
     const userRole = req.headers['x-user-role'];
     if (userRole !== 'admin' && userRole !== 'owner') {
+      if (req.accepts('html')) {
+        return res.redirect('/?error=403&title=Acesso Restrito&message=Sua credencial não possui nível de acesso para esta órbita.');
+      }
       return res.status(403).json({ error: "Acesso negado. Permissão insuficiente." });
     }
     next();
@@ -681,11 +687,16 @@ async function startServer() {
     const distPath = path.join(__dirname, "dist");
     app.use(express.static(distPath));
     
-    // SPA fallback: serve index.html for any non-API routes
-    app.get("*", (req, res, next) => {
-      if (req.path.startsWith('/api')) return next();
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+  // SPA fallback: serve index.html for any non-API routes
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      if (req.accepts('html')) {
+        return res.redirect('/?error=404&title=Coordenadas Inválidas&message=Essa rota não existe em nosso mapa estelar.');
+      }
+      return res.status(404).json({ error: "Rota de API não encontrada." });
+    }
+    res.sendFile(path.join(distPath, "index.html"));
+  });
   }
 
   app.listen(PORT, "0.0.0.0", () => {

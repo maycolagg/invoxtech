@@ -74,6 +74,19 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    
+    // Check for global errors from URL (redirects from server)
+    const urlError = params.get('error');
+    if (urlError) {
+      setGlobalError({
+        code: urlError,
+        title: params.get('title') || "Erro de Navegação",
+        message: params.get('message') || "Ocorreu um problema ao tentar acessar este recurso."
+      });
+      // Clean up URL without reloading
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     if (params.get('action') === 'reset' && params.get('email')) {
       setResetEmail(params.get('email') || '');
       setView('reset-password');
