@@ -28,7 +28,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <ErrorScreen 
-          type="error"
+          code="APP"
           title="Erro de Aplicação"
           message={this.state.error?.message || "Ocorreu um erro inesperado ao renderizar este componente."}
           onBack={() => window.location.reload()}

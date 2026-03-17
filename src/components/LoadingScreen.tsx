@@ -16,25 +16,30 @@ export default function LoadingScreen({
       "flex flex-col items-center justify-center bg-white dark:bg-[#09090b] transition-colors duration-500",
       fullScreen ? "fixed inset-0 z-[100]" : "w-full h-64 rounded-3xl"
     )}>
-      <div className="relative">
+      <div className="relative mb-8">
+        {/* Floating Astronaut for Loading */}
+        <motion.div
+          animate={{ 
+            y: [0, -10, 0],
+            rotate: [0, 5, -5, 0]
+          }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          className="w-24 h-24 mb-4"
+        >
+          <svg viewBox="0 0 200 200" className="w-full h-full">
+            <circle cx="100" cy="60" r="40" fill="#10b981" />
+            <circle cx="100" cy="60" r="32" fill="#1e1e24" />
+            <rect x="70" y="100" width="60" height="70" rx="20" fill="#10b981" />
+            <rect x="60" y="110" width="20" height="50" rx="5" fill="#059669" />
+          </svg>
+        </motion.div>
+
         {/* Outer Ring */}
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-20 h-20 rounded-[24px] border-4 border-zinc-100 dark:border-white/5 border-t-emerald-500"
+          className="absolute inset-0 -m-4 rounded-[32px] border-2 border-dashed border-emerald-500/30"
         />
-        
-        {/* Inner Pulsing Logo/Dot */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <motion.div
-            animate={{ 
-              scale: [1, 1.2, 1],
-              opacity: [0.5, 1, 0.5]
-            }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            className="w-4 h-4 bg-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)]"
-          />
-        </div>
       </div>
 
       <motion.div

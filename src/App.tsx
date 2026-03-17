@@ -29,13 +29,38 @@ export default function App() {
   const [logoUrl, setLogoUrl] = useState('/logo.png');
   const [isBusiness, setIsBusiness] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [globalError, setGlobalError] = useState<{ code: string | number, title: string, message: string } | null>(null);
+
+  const handleApiError = async (res: Response) => {
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      setGlobalError({
+        code: res.status,
+        title: res.status === 404 ? "Página Não Encontrada" : "Erro de Sistema",
+        message: errorData.error || `Ocorreu um erro inesperado (Status: ${res.status}). Nossa equipe de astronautas já está verificando.`
+      });
+      return true;
+    }
+    return false;
+  };
 
   useEffect(() => {
     fetch('/api/settings')
-      .then(res => res.json())
+      .then(async res => {
+        if (await handleApiError(res)) return;
+        return res.json();
+      })
       .then(data => {
+        if (!data) return;
         if (data.company_name) setCompanyName(data.company_name);
         if (data.logo_url) setLogoUrl(data.logo_url);
+      })
+      .catch(() => {
+        setGlobalError({
+          code: "CON",
+          title: "Erro de Conexão",
+          message: "Não conseguimos estabelecer contato com a base. Verifique sua conexão com a internet."
+        });
       });
   }, []);
 
@@ -57,8 +82,12 @@ export default function App() {
     const shopParam = params.get('shop');
 
     fetch('/api/shops')
-      .then(res => res.json())
+      .then(async res => {
+        if (await handleApiError(res)) return;
+        return res.json();
+      })
       .then(data => {
+        if (!data) return;
         setShops(data);
         if (shopParam) {
           const shopId = parseInt(shopParam);
@@ -69,6 +98,13 @@ export default function App() {
         } else if (data.length > 0) {
           setSelectedShopId(data[0].id);
         }
+      })
+      .catch(() => {
+        setGlobalError({
+          code: "CON",
+          title: "Erro de Conexão",
+          message: "A frota de lojas está fora de alcance no momento."
+        });
       });
   }, []);
 
@@ -109,7 +145,15 @@ export default function App() {
           toast.success(`Bem-vindo, ${result.name}!`);
         }
       } else {
-        toast.error(result.error || 'Erro na autenticação');
+        if (res.status === 400 || res.status === 401) {
+          toast.error(result.error || 'Erro na autenticação');
+        } else {
+          setGlobalError({
+            code: res.status,
+            title: "Erro de Missão",
+            message: result.error || "Nossos sistemas detectaram uma anomalia espacial. Tente novamente em instantes."
+          });
+        }
       }
     } catch (err) {
       toast.error('Erro de conexão');
@@ -128,6 +172,14 @@ export default function App() {
         
         <AnimatePresence>
           {loading && <LoadingScreen />}
+          {globalError && (
+            <ErrorScreen 
+              code={globalError.code}
+              title={globalError.title}
+              message={globalError.message}
+              onBack={() => setGlobalError(null)}
+            />
+          )}
         </AnimatePresence>
       
       {/* Header */}
@@ -576,7 +628,6 @@ export default function App() {
             )}>{companyName}</span>
           </div>
           <p className="text-zinc-400 text-sm font-medium">© 2026 {companyName}. Todos os direitos reservados.</p>
-          <p className="text-zinc-400 text-sm font-medium">sv16.03-XX.XLVI</p>
           <div className="flex gap-6 text-sm font-bold text-zinc-500">
             <a href="#" className="hover:text-emerald-500 transition-colors">Termos</a>
             <a href="#" className="hover:text-emerald-500 transition-colors">Privacidade</a>
