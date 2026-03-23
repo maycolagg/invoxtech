@@ -277,7 +277,7 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
               {[
                 { title: 'Agendamento 24/7', desc: 'Marque seu horário em segundos, a qualquer hora do dia.', icon: <Star /> },
-                { title: 'Pagamento Seguro', desc: 'Diversas formas de pagamento direto no estabelecimento.', icon: <ShieldCheck /> },
+                { title: 'Pagamento Seguro', desc: 'Pague direto no seu estabelecimento preferido.', icon: <ShieldCheck /> },
                 { title: 'Gestão Completa', desc: 'Acompanhe seus agendamentos e histórico em um só lugar.', icon: <Zap /> },
                 { title: 'Melhores Preços', desc: 'Acesso a promoções exclusivas dos nossos parceiros.', icon: <Sparkles /> },
               ].map((f, i) => (
@@ -302,7 +302,7 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
               />
             </div>
             <div className="absolute -bottom-10 -left-10 p-10 rounded-[40px] bg-emerald-600 text-white shadow-2xl space-y-2">
-              <p className="text-4xl font-black">+500</p>
+              <p className="text-4xl font-black">Alto crescimento de</p>
               <p className="text-sm font-bold uppercase tracking-widest opacity-80">Lojas Parceiras</p>
             </div>
           </div>
