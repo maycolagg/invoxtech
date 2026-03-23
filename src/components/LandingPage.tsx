@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import toast from 'react-hot-toast';
 import { 
   Search, MapPin, Sparkles, Utensils, 
   Car, Scissors, Coffee, ArrowRight,
-  ChevronRight, Star, ShieldCheck, Zap
+  ChevronRight, Star, ShieldCheck, Zap, X
 } from 'lucide-react';
 import { cn, type Shop } from '../types';
 
@@ -11,29 +12,59 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
   const [shops, setShops] = useState<Shop[]>([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
+  const [userCity, setUserCity] = useState<string | null>(null);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   useEffect(() => {
-    fetch('/api/shops', {
-      headers: { 
-        'x-user-role': userRole || '',
-        'x-app-integrity': 'invox-core-v1',
-        'Accept': 'application/json'
-      }
-    })
-      .then(res => res.json())
-      .then(data => {
+    const fetchShops = async () => {
+      const url = userCity ? `/api/shops?city=${userCity}` : '/api/shops';
+      try {
+        const res = await fetch(url, {
+          headers: { 
+            'x-user-role': userRole || '',
+            'x-app-integrity': 'invox-core-v1',
+            'Accept': 'application/json'
+          }
+        });
+        const data = await res.json();
         if (Array.isArray(data)) {
           setShops(data);
-        } else {
-          console.error("Invalid shops data received:", data);
-          setShops([]);
         }
-      })
-      .catch(err => {
+      } catch (err) {
         console.error("Failed to fetch shops:", err);
-        setShops([]);
+      }
+    };
+
+    fetchShops();
+  }, [userRole, userCity]);
+
+  const detectLocation = () => {
+    setDetectingLocation(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          const city = data.address.city || data.address.town || data.address.village || data.address.suburb;
+          if (city) {
+            setUserCity(city);
+            toast.success(`Localização detectada: ${city}`);
+          }
+        } catch (err) {
+          toast.error("Não foi possível detectar sua cidade automaticamente.");
+        } finally {
+          setDetectingLocation(false);
+        }
+      }, () => {
+        toast.error("Permissão de localização negada.");
+        setDetectingLocation(false);
       });
-  }, [userRole]);
+    } else {
+      toast.error("Geolocalização não suportada pelo seu navegador.");
+      setDetectingLocation(false);
+    }
+  };
 
   const categories = [
     { id: 'all', label: 'Todos', icon: <Sparkles size={18} /> },
@@ -85,6 +116,35 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
           >
             Descubra e agende os melhores serviços da sua região. De estética automotiva a lanchonetes, a {companyName} conecta você ao que há de melhor.
           </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.25 }}
+            className="flex justify-center"
+          >
+            <button 
+              onClick={detectLocation}
+              disabled={detectingLocation}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all",
+                userCity 
+                  ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" 
+                  : "bg-zinc-100 dark:bg-white/5 text-zinc-500 hover:text-emerald-500"
+              )}
+            >
+              <MapPin size={18} />
+              {detectingLocation ? 'Detectando...' : userCity ? `Mostrando lojas em ${userCity}` : 'Detectar minha cidade'}
+              {userCity && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setUserCity(null); }}
+                  className="ml-2 hover:text-red-500"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </button>
+          </motion.div>
 
           {/* Search Bar */}
           <motion.div 
@@ -163,7 +223,7 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute top-6 right-6 px-4 py-2 rounded-xl bg-white/90 dark:bg-black/60 backdrop-blur-md text-xs font-black uppercase tracking-widest flex items-center gap-2 dark:text-white">
-                    <Star size={14} className="text-amber-500 fill-amber-500" /> 4.9
+                    <Star size={14} className="text-amber-500 fill-amber-500" /> {shop.rating || 'Novo'}
                   </div>
                   <div className="absolute bottom-6 left-6">
                     <div className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg">

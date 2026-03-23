@@ -135,6 +135,8 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
     const formData = new FormData(e.currentTarget);
     const updatedShop = {
       name: formData.get('name'),
+      slug: formData.get('slug'),
+      city: formData.get('city'),
       address: formData.get('address'),
       description: formData.get('description'),
       category: formData.get('category'),
@@ -444,6 +446,17 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
                     <input name="name" className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" defaultValue={shop?.name} required />
                   </div>
                   <div className="space-y-2">
+                    <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">URL Personalizada (Slug)</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-zinc-400 hidden md:inline">invox.tech/</span>
+                      <input name="slug" className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" defaultValue={shop?.slug} placeholder="minha-estetica" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Cidade</label>
+                    <input name="city" className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" defaultValue={shop?.city} placeholder="Ex: São Paulo" />
+                  </div>
+                  <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Categoria</label>
                     <select name="category" defaultValue={shop?.category || 'estetica'} className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500">
                       <option value="estetica">Estética Automotiva</option>
@@ -526,13 +539,13 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
                     <div className="flex items-center gap-2 p-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
                       <input 
                         readOnly 
-                        value={`${window.location.origin}?shop=${shopId}`}
+                        value={`${window.location.origin}${shop?.slug ? `/${shop.slug}` : `?shop=${shopId}`}`}
                         className="bg-transparent border-none outline-none text-[10px] font-mono dark:text-white w-32"
                       />
                       <button 
                         type="button"
                         onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}?shop=${shopId}`);
+                          navigator.clipboard.writeText(`${window.location.origin}${shop?.slug ? `/${shop.slug}` : `?shop=${shopId}`}`);
                           toast.success('Link da loja copiado!');
                         }}
                         className="p-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-all"

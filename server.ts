@@ -309,7 +309,14 @@ async function startServer() {
   // Shops
   app.get("/api/shops", async (req, res) => {
     const userRole = req.headers['x-user-role'];
-    const { data: shops, error } = await supabase.from("shops").select("*");
+    const { city } = req.query;
+    
+    let query = supabase.from("shops").select("*");
+    if (city) {
+      query = query.ilike("city", `%${city}%`);
+    }
+    
+    const { data: shops, error } = await query;
     
     // Se não houver cabeçalho de identificação do app, negamos (Proteção contra fetch externo simples)
     if (!userRole && !req.headers['x-app-integrity']) {
@@ -327,33 +334,46 @@ async function startServer() {
     res.json(formatted || []);
   });
 
-  app.get("/api/shops/:id", async (req, res) => {
-    const { data: shop, error: shopErr } = await supabase
-      .from("shops")
-      .select("*")
-      .eq("id", req.params.id)
-      .single();
+  app.get("/api/shops/:idOrSlug", async (req, res) => {
+    const { idOrSlug } = req.params;
+    const isId = /^\d+$/.test(idOrSlug);
+    
+    let query = supabase.from("shops").select("*");
+    if (isId) {
+      query = query.eq("id", idOrSlug);
+    } else {
+      query = query.eq("slug", idOrSlug);
+    }
+    
+    const { data: shop, error: shopErr } = await query.maybeSingle();
+
+    if (!shop) return res.status(404).json({ error: "Estética não encontrada." });
 
     const { data: services, error: servErr } = await supabase
       .from("services")
       .select("*")
-      .eq("shop_id", req.params.id);
+      .eq("shop_id", shop.id);
 
     const userRole = req.headers['x-user-role'];
     let finalShop = shop;
     
     if (userRole !== 'admin' && userRole !== 'owner') {
-      if (shop) {
-        const { cnpj_cpf, ...rest } = shop;
-        finalShop = rest;
-      }
+      const { cnpj_cpf, ...rest } = shop;
+      finalShop = rest;
     }
 
     res.json({ ...finalShop, services: services || [] });
   });
 
   app.put("/api/shops/:id", requireOwnerOrAdmin, async (req, res) => {
-    const { name, address, description, business_hours, social_links, category, cnpj_cpf, phone, email, type } = req.body;
+    const { name, address, description, business_hours, social_links, category, cnpj_cpf, phone, email, type, slug, city } = req.body;
+    
+    // Validar slug se fornecido
+    if (slug) {
+      const { data: existing } = await supabase.from("shops").select("id").eq("slug", slug).neq("id", req.params.id).maybeSingle();
+      if (existing) return res.status(400).json({ error: "Este link personalizado já está em uso." });
+    }
+
     const { data, error } = await supabase
       .from("shops")
       .update({ 
@@ -366,7 +386,9 @@ async function startServer() {
         cnpj_cpf,
         phone,
         email,
-        type
+        type,
+        slug: slug ? slug.toLowerCase().replace(/[^a-z0-9-]/g, '-') : undefined,
+        city: sanitize(city)
       })
       .eq("id", req.params.id)
       .select()
@@ -429,6 +451,32 @@ async function startServer() {
   });
 
   // Bookings
+  app.get("/api/bookings/user/:userId", async (req, res) => {
+    const { data: bookings, error } = await supabase
+      .from("bookings")
+      .select(`
+        *,
+        shops (name, image_url, slug),
+        services (name),
+        reviews (rating, comment)
+      `)
+      .eq("customer_id", req.params.userId)
+      .order("booking_date", { ascending: false });
+    
+    if (error) return res.status(400).json({ error: error.message });
+    
+    const formatted = bookings?.map(b => ({
+      ...b,
+      shop_name: (b as any).shops?.name,
+      shop_image: (b as any).shops?.image_url,
+      shop_slug: (b as any).shops?.slug,
+      service_name: (b as any).services?.name,
+      review: (b as any).reviews?.[0] || null
+    }));
+
+    res.json(formatted || []);
+  });
+
   app.get("/api/bookings/availability", async (req, res) => {
     const { shop_id, date } = req.query;
     const { data: bookings, error } = await supabase
@@ -574,6 +622,80 @@ async function startServer() {
       .from("bookings")
       .update(updateData)
       .eq("id", req.params.id)
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  });
+
+  // Reviews
+  app.post("/api/reviews", async (req, res) => {
+    const { booking_id, user_id, shop_id, rating, comment } = req.body;
+    
+    // Verificar se o agendamento pertence ao usuário e está concluído
+    const { data: booking } = await supabase
+      .from("bookings")
+      .select("id, status")
+      .eq("id", booking_id)
+      .eq("customer_id", user_id)
+      .single();
+    
+    if (!booking) return res.status(403).json({ error: "Agendamento não encontrado ou não pertence a você." });
+    if (booking.status !== 'completed') return res.status(400).json({ error: "Você só pode avaliar serviços concluídos." });
+
+    const { data, error } = await supabase
+      .from("reviews")
+      .insert([{ 
+        booking_id, 
+        user_id, 
+        shop_id, 
+        rating, 
+        comment: sanitize(comment) 
+      }])
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  });
+
+  app.get("/api/reviews/shop/:shopId", async (req, res) => {
+    const { data, error } = await supabase
+      .from("reviews")
+      .select(`
+        *,
+        users (name)
+      `)
+      .eq("shop_id", req.params.shopId)
+      .order("created_at", { ascending: false });
+    
+    if (error) return res.status(400).json({ error: error.message });
+    
+    const formatted = data?.map(r => ({
+      ...r,
+      user_name: (r as any).users?.name
+    }));
+
+    res.json(formatted || []);
+  });
+
+  // User Profile
+  app.put("/api/auth/profile", async (req, res) => {
+    const { id, name, phone, cpf, password } = req.body;
+    
+    const updateData: any = {
+      name: sanitize(name),
+      phone: sanitize(phone),
+      cpf: sanitize(cpf)
+    };
+    
+    if (password) updateData.password = password;
+
+    const { data, error } = await supabase
+      .from("users")
+      .update(updateData)
+      .eq("id", id)
       .select()
       .single();
 

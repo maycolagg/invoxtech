@@ -287,6 +287,10 @@ export default function SuperAdminDashboard({ user }: { user: any }) {
                   <div>
                     <h3 className="text-xl font-black dark:text-white">{shop.name}</h3>
                     <p className="text-sm text-zinc-500 mt-1 line-clamp-1">{shop.address}</p>
+                    <div className="flex gap-2 mt-2">
+                      {shop.slug && <span className="text-[10px] font-bold px-2 py-1 rounded bg-zinc-100 dark:bg-white/5 text-zinc-500">/{shop.slug}</span>}
+                      {shop.city && <span className="text-[10px] font-bold px-2 py-1 rounded bg-emerald-500/10 text-emerald-500">{shop.city}</span>}
+                    </div>
                   </div>
                   <div className="pt-6 border-t border-zinc-50 dark:border-white/5 flex justify-between items-center">
                     <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">ID: {shop.id}</span>
