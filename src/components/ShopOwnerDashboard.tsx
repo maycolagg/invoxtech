@@ -525,35 +525,68 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
                 </div>
 
                 <div className="pt-8 border-t border-zinc-100 dark:border-white/5">
-                  <h4 className="text-lg font-bold dark:text-white mb-6">Horário de Funcionamento</h4>
-                  <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h4 className="text-lg font-bold dark:text-white">Horário de Funcionamento</h4>
+                      <p className="text-xs text-zinc-500">Defina quando sua estética está aberta para agendamentos.</p>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const firstDay = businessHours['monday'] || { open: '08:00', close: '18:00', closed: false };
+                        const newHours = { ...businessHours };
+                        ['tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+                          newHours[day] = { ...firstDay };
+                        });
+                        setBusinessHours(newHours);
+                        toast.success('Horários replicados para todos os dias!');
+                      }}
+                      className="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all uppercase tracking-widest"
+                    >
+                      Replicar Segunda
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
                       const dayLabels: any = {
                         monday: 'Segunda', tuesday: 'Terça', wednesday: 'Quarta',
                         thursday: 'Quinta', friday: 'Sexta', saturday: 'Sábado', sunday: 'Domingo'
                       };
+                      const isClosed = businessHours[day]?.closed;
+                      
                       return (
-                        <div key={day} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-100 dark:border-white/5 gap-4">
-                          <div className="flex items-center gap-4 min-w-[120px]">
-                            <input 
-                              type="checkbox" 
-                              checked={!businessHours[day]?.closed}
-                              onChange={(e) => setBusinessHours({
+                        <div key={day} className={`group relative p-4 rounded-2xl transition-all border ${
+                          isClosed 
+                            ? 'bg-zinc-50/50 dark:bg-white/[0.02] border-zinc-100 dark:border-white/5 opacity-60' 
+                            : 'bg-white dark:bg-[#0a0a0c] border-zinc-200 dark:border-white/10 shadow-sm hover:border-emerald-500/50'
+                        }`}>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className={`text-sm font-bold ${isClosed ? 'text-zinc-400' : 'dark:text-white'}`}>
+                              {dayLabels[day]}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setBusinessHours({
                                 ...businessHours,
-                                [day]: { ...businessHours[day], closed: !e.target.checked }
+                                [day]: { ...businessHours[day], closed: !isClosed }
                               })}
-                              className="w-5 h-5 rounded-lg accent-emerald-500"
-                            />
-                            <span className="font-bold dark:text-white">{dayLabels[day]}</span>
+                              className={`p-1.5 rounded-lg transition-all ${
+                                isClosed 
+                                  ? 'bg-rose-500/10 text-rose-500' 
+                                  : 'bg-emerald-500/10 text-emerald-500'
+                              }`}
+                            >
+                              {isClosed ? <X size={14} /> : <Check size={14} />}
+                            </button>
                           </div>
                           
-                          {!businessHours[day]?.closed ? (
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-zinc-400 uppercase">Abre</span>
+                          {!isClosed ? (
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1">
                                 <input 
                                   type="time" 
-                                  className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 text-sm dark:text-white"
+                                  className="w-full p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-white/5 text-xs dark:text-white focus:ring-1 focus:ring-emerald-500 outline-none"
                                   value={businessHours[day]?.open || '08:00'}
                                   onChange={(e) => setBusinessHours({
                                     ...businessHours,
@@ -561,11 +594,11 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
                                   })}
                                 />
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-zinc-400 uppercase">Fecha</span>
+                              <span className="text-zinc-300 dark:text-zinc-700">/</span>
+                              <div className="flex-1">
                                 <input 
                                   type="time" 
-                                  className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 text-sm dark:text-white"
+                                  className="w-full p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-white/5 text-xs dark:text-white focus:ring-1 focus:ring-emerald-500 outline-none"
                                   value={businessHours[day]?.close || '18:00'}
                                   onChange={(e) => setBusinessHours({
                                     ...businessHours,
@@ -575,7 +608,9 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
                               </div>
                             </div>
                           ) : (
-                            <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">Fechado</span>
+                            <div className="h-9 flex items-center justify-center border border-dashed border-zinc-200 dark:border-white/5 rounded-xl">
+                              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Fechado</span>
+                            </div>
                           )}
                         </div>
                       );
