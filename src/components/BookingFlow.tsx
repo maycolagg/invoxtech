@@ -4,7 +4,8 @@ import {
   Calendar, Clock, User as UserIcon, Phone, Mail, CreditCard, 
   CheckCircle2, ChevronRight, ChevronLeft, Car, 
   ShieldCheck, Sparkles, MapPin, Search,
-  Instagram, Facebook, Youtube, MessageCircle, Lock
+  Instagram, Facebook, Youtube, MessageCircle, Lock,
+  ChevronDown, ChevronUp, AlertCircle, X
 } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -23,12 +24,13 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
     phone: '',
     cpf: '',
     password: '',
-    paymentMethod: ''
+    paymentMethod: 'money'
   });
   const [userExists, setUserExists] = useState<boolean | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [dateOffset, setDateOffset] = useState(0);
+  const [showHoursModal, setShowHoursModal] = useState(false);
 
   const formatCPF = (value: string) => {
     return value
@@ -54,17 +56,35 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
   };
 
   useEffect(() => {
-    fetch(`/api/shops/${shopId}`)
+    fetch(`/api/shops/${shopId}`, {
+      headers: { 
+        'x-app-integrity': 'invox-core-v1',
+        'Accept': 'application/json'
+      }
+    })
       .then(res => res.json())
-      .then(data => setShop(data));
+      .then(data => {
+        if (data && !data.error) setShop(data);
+      });
   }, [shopId]);
 
   useEffect(() => {
     if (selectedDate) {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      fetch(`/api/bookings/availability?shop_id=${shopId}&date=${dateStr}`)
+      fetch(`/api/bookings/availability?shop_id=${shopId}&date=${dateStr}`, {
+        headers: { 
+          'x-app-integrity': 'invox-core-v1',
+          'Accept': 'application/json'
+        }
+      })
         .then(res => res.json())
-        .then(data => setBookedTimes(data.map((b: any) => b.start_time)));
+        .then(data => {
+          if (Array.isArray(data)) {
+            setBookedTimes(data.map((b: any) => b.start_time));
+          } else {
+            setBookedTimes([]);
+          }
+        });
     }
   }, [selectedDate, shopId]);
 
@@ -90,10 +110,17 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
     if (user) return; // Skip check if already logged in
     if (formData.email || formData.cpf) {
       const timer = setTimeout(() => {
-        fetch(`/api/auth/check-user?email=${formData.email}&cpf=${formData.cpf}`)
+        fetch(`/api/auth/check-user?email=${formData.email}&cpf=${formData.cpf}`, {
+          headers: { 
+            'x-app-integrity': 'invox-core-v1',
+            'Accept': 'application/json'
+          }
+        })
           .then(res => res.json())
           .then(data => {
-            setUserExists(data.exists);
+            if (data && data.exists !== undefined) {
+              setUserExists(data.exists);
+            }
           });
       }, 500);
       return () => clearTimeout(timer);
@@ -165,7 +192,77 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
   if (!shop) return <div className="p-8 text-center text-zinc-500">Carregando estética...</div>;
 
   const social = shop.social_links ? JSON.parse(shop.social_links) : [];
-  const hours = shop.business_hours ? JSON.parse(shop.business_hours) : { open: '08:00', close: '18:00' };
+  
+  // Smart Business Hours Logic
+  const getBusinessHours = () => {
+    try {
+      if (!shop.business_hours) return null;
+      const parsed = JSON.parse(shop.business_hours);
+      // Handle legacy format {open, close}
+      if (parsed.open && parsed.close) {
+        return {
+          monday: parsed, tuesday: parsed, wednesday: parsed, 
+          thursday: parsed, friday: parsed, saturday: parsed, sunday: parsed
+        };
+      }
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const businessHours = getBusinessHours();
+  const daysMap: Record<string, string> = {
+    'monday': 'Segunda', 'tuesday': 'Terça', 'wednesday': 'Quarta',
+    'thursday': 'Quinta', 'friday': 'Sexta', 'saturday': 'Sábado', 'sunday': 'Domingo'
+  };
+  const daysOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+  // Map ptBR day names to our keys
+  const dayKeyMap: Record<string, string> = {
+    'segunda-feira': 'monday', 
+    'terça-feira': 'tuesday', 
+    'quarta-feira': 'wednesday',
+    'quinta-feira': 'thursday', 
+    'sexta-feira': 'friday', 
+    'sábado': 'saturday', 
+    'domingo': 'sunday'
+  };
+
+  const getTodayStatus = () => {
+    if (!businessHours) return { status: 'Horário não informado', color: 'text-zinc-400' };
+    
+    const now = new Date();
+    const currentDayPt = format(now, 'eeee', { locale: ptBR }).toLowerCase();
+    const key = dayKeyMap[currentDayPt] || 'monday';
+    const dayConfig = businessHours[key];
+
+    if (!dayConfig || dayConfig.closed) {
+      return { status: 'Fechado hoje', color: 'text-red-500', hours: '' };
+    }
+
+    const [openH, openM] = dayConfig.open.split(':').map(Number);
+    const [closeH, closeM] = dayConfig.close.split(':').map(Number);
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const openTime = openH * 60 + openM;
+    const closeTime = closeH * 60 + closeM;
+
+    if (currentTime >= openTime && currentTime < closeTime) {
+      return { 
+        status: 'Aberto agora', 
+        color: 'text-emerald-500', 
+        hours: `${dayConfig.open} - ${dayConfig.close}` 
+      };
+    } else {
+      return { 
+        status: 'Fechado no momento', 
+        color: 'text-orange-500', 
+        hours: `Abre às ${dayConfig.open}` 
+      };
+    }
+  };
+
+  const todayStatus = getTodayStatus();
 
   const getSocialIcon = (type: string) => {
     switch (type) {
@@ -201,10 +298,91 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-8">
+    <div className="max-w-7xl mx-auto p-4 md:p-8">
+      {/* Business Hours Modal */}
+      <AnimatePresence>
+        {showHoursModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowHoursModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-[40px] shadow-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800"
+            >
+              <div className="p-8 space-y-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-2xl font-black text-zinc-900 dark:text-white">Horários</h3>
+                    <p className="text-sm text-zinc-500">Programação semanal de atendimento</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowHoursModal(false)}
+                    className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <X size={24} className="text-zinc-400" />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {daysOrder.map((day) => {
+                    const config = businessHours?.[day];
+                    const currentDayPt = format(new Date(), 'eeee', { locale: ptBR }).toLowerCase();
+                    const isToday = dayKeyMap[currentDayPt] === day;
+                    
+                    return (
+                      <div 
+                        key={day}
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-2xl transition-all",
+                          isToday ? "bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20" : "bg-zinc-50 dark:bg-zinc-800/50 border border-transparent"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={cn("text-sm font-bold", isToday ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-600 dark:text-zinc-400")}>
+                            {daysMap[day]}
+                          </span>
+                          {isToday && (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-[8px] font-black text-white uppercase tracking-widest">
+                              Hoje
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          {config?.closed ? (
+                            <span className="text-xs font-bold text-red-500 uppercase tracking-wider">Fechado</span>
+                          ) : (
+                            <span className="text-sm font-black text-zinc-900 dark:text-white">
+                              {config?.open} — {config?.close}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button 
+                  onClick={() => setShowHoursModal(false)}
+                  className="w-full py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-2xl font-black text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  Entendi
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Sidebar: Shop Info (Moved to bottom on mobile) */}
-        <div className="lg:col-span-4 space-y-6 order-2 lg:order-1">
+        <div className="lg:col-span-3 space-y-6 order-2 lg:order-1">
           <div className="rounded-[40px] border shadow-xl overflow-hidden sticky top-24 transition-colors bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800">
             <div className="h-48 relative">
               <img 
@@ -247,9 +425,30 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
                     ))}
                   </div>
                   
-                  <div className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-sm">
-                    <Clock size={18} className="text-emerald-500" /> {hours.open} - {hours.close}
-                  </div>
+                  <button 
+                    onClick={() => setShowHoursModal(true)}
+                    className="w-full group relative"
+                  >
+                    <div className="flex items-center justify-between p-4 rounded-3xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 hover:border-emerald-500/30 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-2 h-2 rounded-full animate-pulse", todayStatus.color.replace('text', 'bg'))} />
+                        <div className="text-left">
+                          <p className={cn("text-xs font-black uppercase tracking-wider", todayStatus.color)}>
+                            {todayStatus.status}
+                          </p>
+                          {todayStatus.hours && (
+                            <p className="text-[10px] font-bold text-zinc-400">
+                              {todayStatus.hours}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-zinc-400 group-hover:text-emerald-500 transition-colors">
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Ver tudo</span>
+                        <ChevronRight size={14} />
+                      </div>
+                    </div>
+                  </button>
                 </div>
               </div>
 
@@ -269,8 +468,8 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
         </div>
 
         {/* Right Content: Booking Steps (Moved to top on mobile) */}
-        <div className="lg:col-span-8 order-1 lg:order-2">
-          <div className="rounded-[40px] border p-6 md:p-10 shadow-sm transition-colors bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800">
+        <div className="lg:col-span-9 order-1 lg:order-2">
+          <div className="rounded-[40px] border p-6 md:p-12 shadow-sm transition-colors bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800">
             {/* Progress Bar */}
             <div className="flex justify-between mb-12 relative px-2 md:px-4">
               <div className="absolute top-1/2 left-0 w-full h-0.5 bg-zinc-100 dark:bg-zinc-800 -z-10 -translate-y-1/2" />

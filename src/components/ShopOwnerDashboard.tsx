@@ -460,7 +460,7 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
         )}
 
         {activeTab === 'settings' && (
-          <div className="max-w-4xl space-y-10 pb-20">
+          <div className="max-w-6xl space-y-10 pb-20">
             <div>
               <h2 className="text-4xl font-black dark:text-white">Personalização</h2>
               <p className="text-zinc-500 mt-1">Configure como sua estética aparece para os clientes</p>
