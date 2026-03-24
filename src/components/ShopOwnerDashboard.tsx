@@ -19,7 +19,15 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
   const [shop, setShop] = useState<Shop | null>(null);
   const [showAddService, setShowAddService] = useState(false);
   const [socialLinks, setSocialLinks] = useState<{ type: string, value: string }[]>([]);
-  const [businessHours, setBusinessHours] = useState({ open: '08:00', close: '18:00' });
+  const [businessHours, setBusinessHours] = useState<any>({
+    monday: { open: '08:00', close: '18:00', closed: false },
+    tuesday: { open: '08:00', close: '18:00', closed: false },
+    wednesday: { open: '08:00', close: '18:00', closed: false },
+    thursday: { open: '08:00', close: '18:00', closed: false },
+    friday: { open: '08:00', close: '18:00', closed: false },
+    saturday: { open: '08:00', close: '12:00', closed: false },
+    sunday: { open: '08:00', close: '12:00', closed: true }
+  });
   const [showSocials, setShowSocials] = useState(true);
   const [companySettings, setCompanySettings] = useState({ company_name: 'Invox Tech', logo_url: '/logo.png' });
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
@@ -98,7 +106,21 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
           }
           if (data.business_hours) {
             try {
-              setBusinessHours(JSON.parse(data.business_hours));
+              const parsed = JSON.parse(data.business_hours);
+              // Fallback for old structure { open, close }
+              if (parsed.open && parsed.close && !parsed.monday) {
+                const newStructure: any = {};
+                ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+                  newStructure[day] = { 
+                    open: parsed.open, 
+                    close: parsed.close, 
+                    closed: day === 'sunday' 
+                  };
+                });
+                setBusinessHours(newStructure);
+              } else {
+                setBusinessHours(parsed);
+              }
             } catch (e) {
               console.error("Error parsing business hours:", e);
             }
@@ -195,7 +217,8 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'x-user-role': userRole || ''
+        'x-user-role': userRole || '',
+        'x-app-integrity': 'invox-core-v1'
       },
       body: JSON.stringify(newService)
     });
@@ -205,8 +228,14 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
       setShowAddService(false);
       // Refresh services
       fetch(`/api/services/${shopId}`, {
-        headers: { 'x-user-role': userRole || '' }
+        headers: { 
+          'x-user-role': userRole || '',
+          'x-app-integrity': 'invox-core-v1'
+        }
       }).then(res => res.json()).then(data => setServices(data));
+    } else {
+      const errorData = await res.json();
+      toast.error(errorData.error || 'Erro ao adicionar serviço');
     }
   };
 
@@ -497,25 +526,60 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
 
                 <div className="pt-8 border-t border-zinc-100 dark:border-white/5">
                   <h4 className="text-lg font-bold dark:text-white mb-6">Horário de Funcionamento</h4>
-                  <div className="grid grid-cols-2 gap-6 max-w-sm">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Abertura</label>
-                      <input 
-                        type="time" 
-                        className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" 
-                        value={businessHours.open}
-                        onChange={(e) => setBusinessHours({ ...businessHours, open: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Fechamento</label>
-                      <input 
-                        type="time" 
-                        className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" 
-                        value={businessHours.close}
-                        onChange={(e) => setBusinessHours({ ...businessHours, close: e.target.value })}
-                      />
-                    </div>
+                  <div className="space-y-4">
+                    {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                      const dayLabels: any = {
+                        monday: 'Segunda', tuesday: 'Terça', wednesday: 'Quarta',
+                        thursday: 'Quinta', friday: 'Sexta', saturday: 'Sábado', sunday: 'Domingo'
+                      };
+                      return (
+                        <div key={day} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-100 dark:border-white/5 gap-4">
+                          <div className="flex items-center gap-4 min-w-[120px]">
+                            <input 
+                              type="checkbox" 
+                              checked={!businessHours[day]?.closed}
+                              onChange={(e) => setBusinessHours({
+                                ...businessHours,
+                                [day]: { ...businessHours[day], closed: !e.target.checked }
+                              })}
+                              className="w-5 h-5 rounded-lg accent-emerald-500"
+                            />
+                            <span className="font-bold dark:text-white">{dayLabels[day]}</span>
+                          </div>
+                          
+                          {!businessHours[day]?.closed ? (
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-zinc-400 uppercase">Abre</span>
+                                <input 
+                                  type="time" 
+                                  className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 text-sm dark:text-white"
+                                  value={businessHours[day]?.open || '08:00'}
+                                  onChange={(e) => setBusinessHours({
+                                    ...businessHours,
+                                    [day]: { ...businessHours[day], open: e.target.value }
+                                  })}
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-zinc-400 uppercase">Fecha</span>
+                                <input 
+                                  type="time" 
+                                  className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 text-sm dark:text-white"
+                                  value={businessHours[day]?.close || '18:00'}
+                                  onChange={(e) => setBusinessHours({
+                                    ...businessHours,
+                                    [day]: { ...businessHours[day], close: e.target.value }
+                                  })}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">Fechado</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

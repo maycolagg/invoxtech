@@ -262,7 +262,12 @@ export default function SuperAdminDashboard({ user }: { user: any }) {
                 <ChevronRight size={16} className="rotate-180" /> Voltar para Lista de Lojas
               </button>
               <div className="border-4 border-emerald-500/20 rounded-[48px] overflow-hidden">
-                <ShopOwnerDashboard shopId={selectedShopId} isAdminView={true} />
+                <ShopOwnerDashboard 
+                  shopId={selectedShopId} 
+                  isAdminView={true} 
+                  userRole={user?.role} 
+                  userEmail={user?.email} 
+                />
               </div>
             </div>
           ) : (
