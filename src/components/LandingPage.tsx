@@ -302,8 +302,8 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
               />
             </div>
             <div className="absolute -bottom-10 -left-10 p-10 rounded-[40px] bg-emerald-600 text-white shadow-2xl space-y-2">
-              <p className="text-4xl font-black">Alto crescimento de</p>
-              <p className="text-sm font-bold uppercase tracking-widest opacity-80">Lojas Parceiras</p>
+              <p className="text-4xl font-black">Alto crescimento</p>
+              <p className="text-sm font-bold uppercase tracking-widest opacity-80">de Lojas Parceiras</p>
             </div>
           </div>
         </div>
