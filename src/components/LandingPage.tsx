@@ -123,14 +123,14 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
             transition={{ delay: 0.25 }}
             className="flex justify-center"
           >
-            <button 
-              onClick={detectLocation}
-              disabled={detectingLocation}
+            <div 
+              onClick={() => !detectingLocation && detectLocation()}
               className={cn(
-                "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all",
+                "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all cursor-pointer",
                 userCity 
                   ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" 
-                  : "bg-zinc-100 dark:bg-white/5 text-zinc-500 hover:text-emerald-500"
+                  : "bg-zinc-100 dark:bg-white/5 text-zinc-500 hover:text-emerald-500",
+                detectingLocation && "opacity-50 cursor-not-allowed"
               )}
             >
               <MapPin size={18} />
@@ -138,12 +138,13 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
               {userCity && (
                 <button 
                   onClick={(e) => { e.stopPropagation(); setUserCity(null); }}
-                  className="ml-2 hover:text-red-500"
+                  className="ml-2 hover:text-red-500 transition-colors"
+                  title="Limpar localização"
                 >
                   <X size={14} />
                 </button>
               )}
-            </button>
+            </div>
           </motion.div>
 
           {/* Search Bar */}
@@ -276,7 +277,7 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
               {[
                 { title: 'Agendamento 24/7', desc: 'Marque seu horário em segundos, a qualquer hora do dia.', icon: <Star /> },
-                { title: 'Pagamento Seguro', desc: 'Diversas formas de pagamento direto no estabelecimento.', icon: <ShieldCheck /> },
+                { title: 'Pagamento Seguro', desc: 'Pague direto no seu estabelecimento preferido.', icon: <ShieldCheck /> },
                 { title: 'Gestão Completa', desc: 'Acompanhe seus agendamentos e histórico em um só lugar.', icon: <Zap /> },
                 { title: 'Melhores Preços', desc: 'Acesso a promoções exclusivas dos nossos parceiros.', icon: <Sparkles /> },
               ].map((f, i) => (
@@ -301,7 +302,7 @@ export default function LandingPage({ onSelectShop, companyName, userRole }: { o
               />
             </div>
             <div className="absolute -bottom-10 -left-10 p-10 rounded-[40px] bg-emerald-600 text-white shadow-2xl space-y-2">
-              <p className="text-4xl font-black">+500</p>
+              <p className="text-4xl font-black">Alto crescimento de</p>
               <p className="text-sm font-bold uppercase tracking-widest opacity-80">Lojas Parceiras</p>
             </div>
           </div>
