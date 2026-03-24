@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn, type User, type Shop } from './types';
 import { motion, AnimatePresence } from 'motion/react';
+import { formatCPF, formatPhone } from './utils/masks';
 
 export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -31,6 +32,32 @@ export default function App() {
   const [isBusiness, setIsBusiness] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [globalError, setGlobalError] = useState<{ code: string | number, title: string, message: string } | null>(null);
+  const [formValues, setFormValues] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    cpf: '',
+    password: '',
+    category: 'estetica'
+  });
+  const [profileValues, setProfileValues] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    cpf: ''
+  });
+
+  const toggleAuthMode = (mode: 'login' | 'register' | 'forgot') => {
+    setAuthMode(mode);
+    setFormValues({
+      name: '',
+      email: '',
+      phone: '',
+      cpf: '',
+      password: '',
+      category: 'estetica'
+    });
+  };
 
   const handleApiError = async (res: Response) => {
     if (!res.ok) {
@@ -52,6 +79,12 @@ export default function App() {
       try {
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
+        setProfileValues({
+          name: parsedUser.name || '',
+          email: parsedUser.email || '',
+          phone: parsedUser.phone || '',
+          cpf: parsedUser.cpf || ''
+        });
       } catch (e) {
         localStorage.removeItem('invox_user');
       }
@@ -481,31 +514,54 @@ export default function App() {
               }} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Nome Completo</label>
-                  <input name="name" defaultValue={user.name} required className={cn(
-                    "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
-                    theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
-                  )} />
+                  <input 
+                    name="name" 
+                    value={profileValues.name} 
+                    onChange={(e) => setProfileValues({...profileValues, name: e.target.value})}
+                    required 
+                    className={cn(
+                      "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
+                      theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                    )} 
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">E-mail</label>
-                  <input name="email" defaultValue={user.email} disabled className={cn(
-                    "w-full px-6 py-4 rounded-2xl border-none outline-none opacity-50 cursor-not-allowed",
-                    theme === 'dark' ? "bg-[#0a0a0c] text-white" : "bg-zinc-100 text-zinc-900"
-                  )} />
+                  <input 
+                    name="email" 
+                    value={profileValues.email} 
+                    disabled 
+                    className={cn(
+                      "w-full px-6 py-4 rounded-2xl border-none outline-none opacity-50 cursor-not-allowed",
+                      theme === 'dark' ? "bg-[#0a0a0c] text-white" : "bg-zinc-100 text-zinc-900"
+                    )} 
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">WhatsApp</label>
-                  <input name="phone" defaultValue={user.phone} required className={cn(
-                    "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
-                    theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
-                  )} />
+                  <input 
+                    name="phone" 
+                    value={profileValues.phone} 
+                    onChange={(e) => setProfileValues({...profileValues, phone: formatPhone(e.target.value)})}
+                    required 
+                    className={cn(
+                      "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
+                      theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                    )} 
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">CPF</label>
-                  <input name="cpf" defaultValue={user.cpf} required className={cn(
-                    "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
-                    theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
-                  )} />
+                  <input 
+                    name="cpf" 
+                    value={profileValues.cpf} 
+                    onChange={(e) => setProfileValues({...profileValues, cpf: formatCPF(e.target.value)})}
+                    required 
+                    className={cn(
+                      "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
+                      theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                    )} 
+                  />
                 </div>
                 <div className="md:col-span-2 pt-6">
                   <button type="submit" className="w-full py-5 rounded-2xl bg-emerald-600 text-white font-black text-lg shadow-xl shadow-emerald-900/20 hover:bg-emerald-500 transition-all">
@@ -631,19 +687,31 @@ export default function App() {
                       <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
                         {isBusiness ? 'Nome da Empresa' : 'Nome Completo'}
                       </label>
-                      <input name="name" required className={cn(
-                        "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
-                        theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
-                      )} placeholder={isBusiness ? "Ex: Estética Automotiva Pro" : "Seu nome"} />
+                      <input 
+                        name="name" 
+                        required 
+                        value={formValues.name}
+                        onChange={(e) => setFormValues({...formValues, name: e.target.value})}
+                        className={cn(
+                          "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
+                          theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                        )} 
+                        placeholder={isBusiness ? "Ex: Estética Automotiva Pro" : "Seu nome"} 
+                      />
                     </div>
 
                     {isBusiness && (
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Categoria</label>
-                        <select name="category" className={cn(
-                          "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
-                          theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
-                        )}>
+                        <select 
+                          name="category" 
+                          value={formValues.category}
+                          onChange={(e) => setFormValues({...formValues, category: e.target.value})}
+                          className={cn(
+                            "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
+                            theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                          )}
+                        >
                           <option value="estetica">Estética Automotiva</option>
                           <option value="lanchonete">Lanchonete / Restaurante</option>
                           <option value="beleza">Beleza / Barbearia</option>
@@ -657,29 +725,51 @@ export default function App() {
                 
                 <div className="space-y-2 mt-4">
                   <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">E-mail</label>
-                  <input name="email" type="email" required className={cn(
-                    "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
-                    theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
-                  )} placeholder="seu@email.com" />
+                  <input 
+                    name="email" 
+                    type="email" 
+                    required 
+                    value={formValues.email}
+                    onChange={(e) => setFormValues({...formValues, email: e.target.value})}
+                    className={cn(
+                      "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
+                      theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                    )} 
+                    placeholder="seu@email.com" 
+                  />
                 </div>
 
                 {authMode === 'register' && (
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">WhatsApp</label>
-                      <input name="phone" required className={cn(
-                        "w-full px-4 py-4 rounded-2xl border-none outline-none transition-all",
-                        theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
-                      )} placeholder="(11) 9..." />
+                      <input 
+                        name="phone" 
+                        required 
+                        value={formValues.phone}
+                        onChange={(e) => setFormValues({...formValues, phone: formatPhone(e.target.value)})}
+                        className={cn(
+                          "w-full px-4 py-4 rounded-2xl border-none outline-none transition-all",
+                          theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                        )} 
+                        placeholder="(11) 9..." 
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
                         {isBusiness ? 'CNPJ / CPF' : 'CPF'}
                       </label>
-                      <input name="cpf" required className={cn(
-                        "w-full px-4 py-4 rounded-2xl border-none outline-none transition-all",
-                        theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
-                      )} placeholder="000..." />
+                      <input 
+                        name="cpf" 
+                        required 
+                        value={formValues.cpf}
+                        onChange={(e) => setFormValues({...formValues, cpf: formatCPF(e.target.value)})}
+                        className={cn(
+                          "w-full px-4 py-4 rounded-2xl border-none outline-none transition-all",
+                          theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                        )} 
+                        placeholder="000..." 
+                      />
                     </div>
                   </div>
                 )}
@@ -692,6 +782,8 @@ export default function App() {
                         name="password" 
                         type={showPassword ? "text" : "password"} 
                         required 
+                        value={formValues.password}
+                        onChange={(e) => setFormValues({...formValues, password: e.target.value})}
                         className={cn(
                           "w-full px-6 py-4 rounded-2xl border-none outline-none transition-all",
                           theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
@@ -727,11 +819,11 @@ export default function App() {
               )}>
                 {authMode === 'login' ? (
                   <>
-                    <button onClick={() => setAuthMode('register')} className="w-full text-sm font-bold text-emerald-600 hover:text-emerald-500">Não tem conta? Cadastre-se</button>
-                    <button onClick={() => setAuthMode('forgot')} className="w-full text-sm font-bold text-zinc-400 hover:text-zinc-600">Esqueci minha senha</button>
+                    <button onClick={() => toggleAuthMode('register')} className="w-full text-sm font-bold text-emerald-600 hover:text-emerald-500">Não tem conta? Cadastre-se</button>
+                    <button onClick={() => toggleAuthMode('forgot')} className="w-full text-sm font-bold text-zinc-400 hover:text-zinc-600">Esqueci minha senha</button>
                   </>
                 ) : (
-                  <button onClick={() => setAuthMode('login')} className="w-full text-sm font-bold text-zinc-400 hover:text-zinc-900">Voltar para o Login</button>
+                  <button onClick={() => toggleAuthMode('login')} className="w-full text-sm font-bold text-zinc-400 hover:text-zinc-900">Voltar para o Login</button>
                 )}
                 <button 
                   onClick={() => setView('booking')}

@@ -11,6 +11,7 @@ import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, type Shop, type Service, type Booking, type User } from '../types';
 import toast from 'react-hot-toast';
+import { formatCPF, formatPhone } from '../utils/masks';
 
 export default function BookingFlow({ shopId, user }: { shopId: number, user: User | null }) {
   const [step, setStep] = useState(1);
@@ -31,23 +32,6 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
   const [loading, setLoading] = useState(false);
   const [dateOffset, setDateOffset] = useState(0);
   const [showHoursModal, setShowHoursModal] = useState(false);
-
-  const formatCPF = (value: string) => {
-    return value
-      .replace(/\D/g, '')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-      .replace(/(-\d{2})\d+?$/, '$1');
-  };
-
-  const formatPhone = (value: string) => {
-    return value
-      .replace(/\D/g, '')
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-      .replace(/(-\d{4})\d+?$/, '$1');
-  };
 
   const paymentMethodLabels: Record<string, string> = {
     'money': 'DINHEIRO',

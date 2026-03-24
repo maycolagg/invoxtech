@@ -11,6 +11,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, type Booking, type Service, type Shop } from '../types';
 import toast from 'react-hot-toast';
+import { formatTaxId, formatPhone } from '../utils/masks';
 
 export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEmail, userRole }: { shopId: number, isAdminView?: boolean, userEmail?: string, userRole?: string }) {
   const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'settings'>('bookings');
@@ -31,6 +32,18 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
   const [showSocials, setShowSocials] = useState(true);
   const [companySettings, setCompanySettings] = useState({ company_name: 'Invox Tech', logo_url: '/logo.png' });
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [shopForm, setShopForm] = useState({
+    name: '',
+    slug: '',
+    city: '',
+    category: 'estetica',
+    type: 'PJ',
+    cnpj_cpf: '',
+    email: '',
+    phone: '',
+    address: '',
+    description: ''
+  });
 
   const paymentMethodLabels: Record<string, string> = {
     'money': 'DINHEIRO',
@@ -88,6 +101,18 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
       .then(data => {
         if (data && !data.error) {
           setShop(data);
+          setShopForm({
+            name: data.name || '',
+            slug: data.slug || '',
+            city: data.city || '',
+            category: data.category || 'estetica',
+            type: data.type || 'PJ',
+            cnpj_cpf: data.cnpj_cpf || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            address: data.address || '',
+            description: data.description || ''
+          });
           if (data.social_links) {
             try {
               const links = JSON.parse(data.social_links);
@@ -472,22 +497,45 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Nome da Estética</label>
-                    <input name="name" className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" defaultValue={shop?.name} required />
+                    <input 
+                      name="name" 
+                      className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" 
+                      value={shopForm.name} 
+                      onChange={e => setShopForm({...shopForm, name: e.target.value})}
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">URL Personalizada (Slug)</label>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-zinc-400 hidden md:inline">invox.tech/</span>
-                      <input name="slug" className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" defaultValue={shop?.slug} placeholder="minha-estetica" />
+                      <input 
+                        name="slug" 
+                        className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" 
+                        value={shopForm.slug} 
+                        onChange={e => setShopForm({...shopForm, slug: e.target.value})}
+                        placeholder="minha-estetica" 
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Cidade</label>
-                    <input name="city" className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" defaultValue={shop?.city} placeholder="Ex: São Paulo" />
+                    <input 
+                      name="city" 
+                      className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" 
+                      value={shopForm.city} 
+                      onChange={e => setShopForm({...shopForm, city: e.target.value})}
+                      placeholder="Ex: São Paulo" 
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Categoria</label>
-                    <select name="category" defaultValue={shop?.category || 'estetica'} className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500">
+                    <select 
+                      name="category" 
+                      value={shopForm.category} 
+                      onChange={e => setShopForm({...shopForm, category: e.target.value})}
+                      className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                    >
                       <option value="estetica">Estética Automotiva</option>
                       <option value="lanchonete">Lanchonete / Restaurante</option>
                       <option value="beleza">Beleza / Barbearia</option>
@@ -497,30 +545,65 @@ export default function ShopOwnerDashboard({ shopId, isAdminView = false, userEm
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Tipo de Pessoa</label>
-                    <select name="type" defaultValue={shop?.type || 'PJ'} className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500">
+                    <select 
+                      name="type" 
+                      value={shopForm.type} 
+                      onChange={e => setShopForm({...shopForm, type: e.target.value})}
+                      className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                    >
                       <option value="PF">Pessoa Física (CPF)</option>
                       <option value="PJ">Pessoa Jurídica (CNPJ)</option>
                     </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">CNPJ / CPF</label>
-                    <input name="cnpj_cpf" className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" defaultValue={shop?.cnpj_cpf} placeholder="00.000.000/0001-00" />
+                    <input 
+                      name="cnpj_cpf" 
+                      className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" 
+                      value={shopForm.cnpj_cpf} 
+                      onChange={e => setShopForm({...shopForm, cnpj_cpf: formatTaxId(e.target.value)})}
+                      placeholder="00.000.000/0001-00" 
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">E-mail de Contato</label>
-                    <input name="email" type="email" className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" defaultValue={shop?.email} placeholder="contato@empresa.com" />
+                    <input 
+                      name="email" 
+                      type="email" 
+                      className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" 
+                      value={shopForm.email} 
+                      onChange={e => setShopForm({...shopForm, email: e.target.value})}
+                      placeholder="contato@empresa.com" 
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Telefone / WhatsApp</label>
-                    <input name="phone" className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" defaultValue={shop?.phone} placeholder="(11) 99999-9999" />
+                    <input 
+                      name="phone" 
+                      className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" 
+                      value={shopForm.phone} 
+                      onChange={e => setShopForm({...shopForm, phone: formatPhone(e.target.value)})}
+                      placeholder="(11) 99999-9999" 
+                    />
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Endereço Completo</label>
-                    <input name="address" className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" defaultValue={shop?.address} required />
+                    <input 
+                      name="address" 
+                      className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500" 
+                      value={shopForm.address} 
+                      onChange={e => setShopForm({...shopForm, address: e.target.value})}
+                      required 
+                    />
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Bio / Descrição</label>
-                    <textarea name="description" className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 min-h-[120px]" defaultValue={shop?.description} />
+                    <textarea 
+                      name="description" 
+                      className="w-full p-4 rounded-2xl outline-none transition-all bg-zinc-50 dark:bg-[#0a0a0c] border border-zinc-200 dark:border-white/5 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 min-h-[120px]" 
+                      value={shopForm.description} 
+                      onChange={e => setShopForm({...shopForm, description: e.target.value})}
+                    />
                   </div>
                 </div>
 
