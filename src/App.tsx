@@ -570,6 +570,39 @@ export default function App() {
                     )} 
                   />
                 </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Segurança</label>
+                  <button 
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/auth/forgot-password', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: user.email })
+                        });
+                        if (res.ok) {
+                          toast.success('E-mail de recuperação enviado!');
+                        } else {
+                          toast.error('Erro ao solicitar nova senha');
+                        }
+                      } catch (e) {
+                        toast.error('Erro de conexão');
+                      }
+                    }}
+                    className={cn(
+                      "w-full px-6 py-4 rounded-2xl border flex items-center justify-between transition-all group",
+                      theme === 'dark' ? "bg-[#0a0a0c] border-white/5 hover:border-emerald-500/50" : "bg-zinc-100 border-zinc-200 hover:border-zinc-900"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Lock size={20} className="text-zinc-400 group-hover:text-emerald-500 transition-colors" />
+                      <span className="font-bold">Solicitar Nova Senha</span>
+                    </div>
+                    <ChevronRight size={20} className="text-zinc-400 group-hover:translate-x-1 transition-all" />
+                  </button>
+                  <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">Um link será enviado para {user.email}</p>
+                </div>
                 <div className="md:col-span-2 pt-6">
                   <button type="submit" className="w-full py-5 rounded-2xl bg-emerald-600 text-white font-black text-lg shadow-xl shadow-emerald-900/20 hover:bg-emerald-500 transition-all">
                     Salvar Alterações
@@ -882,12 +915,13 @@ export default function App() {
               theme === 'dark' ? "text-white" : "text-zinc-900"
             )}>{companyName}</span>
           </div>
-          <p className="text-zinc-400 text-sm font-medium">© 2026 {companyName}. Todos os direitos reservados.</p>
+          <p className="text-zinc-400 text-sm font-medium">© 2026 <a href="https://instagram.com/invoxtech" target="_blank" className="text-emerald-500">{companyName}</a>. Todos os direitos reservados.</p>
           <div className="flex gap-6 text-sm font-bold text-zinc-500">
             <a href="#" className="hover:text-emerald-500 transition-colors">Termos</a>
             <a href="#" className="hover:text-emerald-500 transition-colors">Privacidade</a>
             <a href="#" className="hover:text-emerald-500 transition-colors">Suporte</a>
           </div>
+          <p className="text-zinc-400 text-sm font-medium">SV23.03</p>
         </div>
       </footer>
     </div>
