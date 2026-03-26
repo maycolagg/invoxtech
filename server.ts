@@ -7,7 +7,7 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { createServer as createViteServer } from "vite";
 import { supabase } from "./server/supabase";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 import path from "path";
 import { fileURLToPath } from "url";
