@@ -7,12 +7,25 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { createServer as createViteServer } from "vite";
 import { supabase } from "./server/supabase";
+import bcrypt from "bcrypt";
 
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const PEPPER = process.env.PASSWORD_PEPPER || "default-pepper-for-dev-only";
+
+const hashPassword = async (password: string) => {
+  return await bcrypt.hash(password + PEPPER, 10);
+};
+
+const comparePassword = async (password: string, hash: string) => {
+  // Fallback para senhas antigas em texto puro (apenas para transição)
+  if (password === hash) return true;
+  return await bcrypt.compare(password + PEPPER, hash);
+};
 
 async function startServer() {
   const app = express();
@@ -165,10 +178,14 @@ async function startServer() {
         .from("users")
         .select("*")
         .or(`email.eq.${email},cpf.eq.${email}`)
-        .eq("password", password)
         .maybeSingle();
 
-      if (user) {
+      if (user && await comparePassword(password, user.password)) {
+        // Se a senha estava em texto puro, faz o upgrade para hash agora
+        if (password === user.password) {
+          const hashedPassword = await hashPassword(password);
+          await supabase.from("users").update({ password: hashedPassword }).eq("id", user.id);
+        }
         res.json(user);
       } else {
         res.status(401).json({ error: "Credenciais inválidas. Verifique seu e-mail/CPF e senha." });
@@ -199,6 +216,8 @@ async function startServer() {
       return res.status(400).json({ error: "E-mail ou CPF já cadastrado." });
     }
 
+    const hashedPassword = await hashPassword(password);
+
     const { data: newUser, error } = await supabase
       .from("users")
       .insert([{ 
@@ -206,7 +225,7 @@ async function startServer() {
         email, 
         phone, 
         cpf, 
-        password, 
+        password: hashedPassword, 
         role: role || 'customer', 
         category: category || null 
       }])
@@ -223,7 +242,17 @@ async function startServer() {
           name: name, // Nome inicial da loja é o nome da empresa/dono
           owner_id: newUser.id,
           category: category || 'estetica',
-          business_hours: JSON.stringify({ open: '08:00', close: '18:00' }),
+          email: email, // Consistência: usa o email do dono
+          phone: phone, // Consistência: usa o telefone do dono
+          business_hours: JSON.stringify({
+            monday: { open: '08:00', close: '18:00', closed: false },
+            tuesday: { open: '08:00', close: '18:00', closed: false },
+            wednesday: { open: '08:00', close: '18:00', closed: false },
+            thursday: { open: '08:00', close: '18:00', closed: false },
+            friday: { open: '08:00', close: '18:00', closed: false },
+            saturday: { open: '08:00', close: '12:00', closed: false },
+            sunday: { open: '08:00', close: '12:00', closed: true }
+          }),
           social_links: JSON.stringify([])
         }])
         .select()
@@ -281,9 +310,12 @@ async function startServer() {
   app.post("/api/auth/reset-password", async (req, res) => {
     const { email, newPassword } = req.body;
     console.log(`Resetting password for ${email}`);
+    
+    const hashedPassword = await hashPassword(newPassword);
+
     const { error } = await supabase
       .from("users")
-      .update({ password: newPassword })
+      .update({ password: hashedPassword })
       .eq("email", email);
 
     if (error) {
@@ -367,12 +399,15 @@ async function startServer() {
 
   app.put("/api/shops/:id", requireOwnerOrAdmin, async (req, res) => {
     const { name, address, description, business_hours, social_links, category, cnpj_cpf, phone, email, type, slug, city } = req.body;
+    const { id } = req.params;
     
     // Validar slug se fornecido
     if (slug) {
-      const { data: existing } = await supabase.from("shops").select("id").eq("slug", slug).neq("id", req.params.id).maybeSingle();
+      const { data: existing } = await supabase.from("shops").select("id").eq("slug", slug).neq("id", id).maybeSingle();
       if (existing) return res.status(400).json({ error: "Este link personalizado já está em uso." });
     }
+
+    const { data: shopToUpdate } = await supabase.from("shops").select("owner_id").eq("id", id).single();
 
     const { data, error } = await supabase
       .from("shops")
@@ -380,8 +415,8 @@ async function startServer() {
         name: sanitize(name), 
         address: sanitize(address), 
         description: sanitize(description), 
-        business_hours, 
-        social_links,
+        business_hours: typeof business_hours === 'string' ? business_hours : JSON.stringify(business_hours), 
+        social_links: typeof social_links === 'string' ? social_links : JSON.stringify(social_links),
         category,
         cnpj_cpf,
         phone,
@@ -390,11 +425,20 @@ async function startServer() {
         slug: slug ? slug.toLowerCase().replace(/[^a-z0-9-]/g, '-') : undefined,
         city: sanitize(city)
       })
-      .eq("id", req.params.id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error) return res.status(400).json({ error: error.message });
+
+    // --- CONSISTÊNCIA DE DADOS: Sincronizar e-mail e telefone com o dono ---
+    if (shopToUpdate?.owner_id) {
+      await supabase
+        .from("users")
+        .update({ email, phone })
+        .eq("id", shopToUpdate.owner_id);
+    }
+
     res.json(data);
   });
 
@@ -494,6 +538,20 @@ async function startServer() {
       payment_method, total_price, password 
     } = req.body;
 
+    // --- REGRA DE NEGÓCIO: Apenas 1 serviço por horário na estética ---
+    const { data: existingBooking } = await supabase
+      .from("bookings")
+      .select("id")
+      .eq("shop_id", shop_id)
+      .eq("booking_date", booking_date)
+      .eq("start_time", start_time)
+      .neq("status", "cancelled") // Ignora cancelados
+      .maybeSingle();
+
+    if (existingBooking) {
+      return res.status(409).json({ error: "Este horário já está ocupado. Por favor, escolha outro momento." });
+    }
+
     // Verificação de conta existente por CPF ou Email para evitar inconstância
     if (!customer_id && (customer_email || customer_cpf)) {
       const { data: existingUser } = await supabase
@@ -504,7 +562,7 @@ async function startServer() {
 
       if (existingUser) {
         // Se a conta existe, validamos a senha
-        if (existingUser.password !== password) {
+        if (!(await comparePassword(password, existingUser.password))) {
           return res.status(401).json({ error: "Esta conta já existe. Por favor, informe a senha correta para vincular o agendamento." });
         }
         customer_id = existingUser.id;
@@ -515,6 +573,7 @@ async function startServer() {
         customer_cpf = existingUser.cpf || customer_cpf;
       } else if (password) {
         // Se não existe e passou senha, criamos a conta automaticamente
+        const hashedPassword = await hashPassword(password);
         const { data: newUser } = await supabase
           .from("users")
           .insert([{ 
@@ -522,7 +581,7 @@ async function startServer() {
             email: customer_email, 
             phone: customer_phone, 
             cpf: customer_cpf, 
-            password, 
+            password: hashedPassword, 
             role: 'customer' 
           }])
           .select()
@@ -690,7 +749,9 @@ async function startServer() {
       cpf: sanitize(cpf)
     };
     
-    if (password) updateData.password = password;
+    if (password) {
+      updateData.password = await hashPassword(password);
+    }
 
     const { data, error } = await supabase
       .from("users")
@@ -766,7 +827,9 @@ async function startServer() {
     if (cpf !== undefined) updateData.cpf = cpf;
     if (role !== undefined) updateData.role = role;
     if (shop_id !== undefined) updateData.shop_id = shop_id;
-    if (password) updateData.password = password;
+    if (password) {
+      updateData.password = await hashPassword(password);
+    }
 
     const { data, error } = await supabase
       .from("users")
