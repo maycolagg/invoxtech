@@ -27,6 +27,34 @@ const comparePassword = async (password: string, hash: string) => {
   return await bcrypt.compare(password + PEPPER, hash);
 };
 
+const validateCPF = (cpf: string) => {
+  const cleanCPF = cpf.replace(/\D/g, '');
+  if (cleanCPF.length !== 11) return false;
+  if (/^(\d)\1+$/.test(cleanCPF)) return false;
+
+  let sum = 0;
+  let remainder;
+
+  for (let i = 1; i <= 9; i++) {
+    sum = sum + parseInt(cleanCPF.substring(i - 1, i)) * (11 - i);
+  }
+
+  remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleanCPF.substring(9, 10))) return false;
+
+  sum = 0;
+  for (let i = 1; i <= 10; i++) {
+    sum = sum + parseInt(cleanCPF.substring(i - 1, i)) * (12 - i);
+  }
+
+  remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleanCPF.substring(10, 11))) return false;
+
+  return true;
+};
+
 async function startServer() {
   const app = express();
   app.set('trust proxy', 1);
@@ -138,7 +166,9 @@ async function startServer() {
     name: z.string().min(3, "Nome muito curto"),
     email: z.string().email("E-mail inválido"),
     phone: z.string().optional(),
-    cpf: z.string().min(11, "CPF inválido"),
+    cpf: z.string().refine((val) => validateCPF(val), {
+      message: "CPF inválido",
+    }),
     password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
     role: z.enum(['admin', 'owner', 'customer']).optional(),
     category: z.string().optional()
