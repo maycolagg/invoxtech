@@ -22,6 +22,7 @@ export default function App() {
   const [view, setView] = useState<'landing' | 'booking' | 'admin' | 'owner' | 'login' | 'reset-password' | 'profile'>('landing');
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [resetEmail, setResetEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<number | null>(null);
@@ -138,9 +139,12 @@ export default function App() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    if (params.get('action') === 'reset' && params.get('email')) {
+    if (params.get('action') === 'reset' && (params.get('token') || params.get('email'))) {
       setResetEmail(params.get('email') || '');
+      setResetToken(params.get('token') || '');
       setView('reset-password');
+      // Clean up URL to hide token
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     const shopParam = params.get('shop');
@@ -633,7 +637,7 @@ export default function App() {
                 </div>
                 <h2 className="text-3xl font-black tracking-tight">Nova Senha</h2>
                 <p className={theme === 'dark' ? "text-zinc-400" : "text-zinc-500"}>
-                  Recuperando acesso para: <span className="font-bold text-emerald-500">{resetEmail}</span>
+                  Defina sua nova senha de acesso com segurança.
                 </p>
               </div>
               <form onSubmit={async (e) => {
@@ -643,10 +647,11 @@ export default function App() {
                 const res = await fetch('/api/auth/reset-password', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ email: resetEmail, newPassword })
+                  body: JSON.stringify({ token: resetToken, email: resetEmail, newPassword })
                 });
                 if (res.ok) {
                   toast.success('Senha atualizada com sucesso!');
+                  setResetToken('');
                   setView('login');
                   setAuthMode('login');
                 }
@@ -915,13 +920,12 @@ export default function App() {
               theme === 'dark' ? "text-white" : "text-zinc-900"
             )}>{companyName}</span>
           </div>
-          <p className="text-zinc-400 text-sm font-medium">© 2026 <a href="https://instagram.com/invoxtech" target="_blank" className="text-emerald-500">{companyName}</a>. Todos os direitos reservados.</p>
+          <p className="text-zinc-400 text-sm font-medium">© 2026 {companyName}. Todos os direitos reservados.</p>
           <div className="flex gap-6 text-sm font-bold text-zinc-500">
             <a href="#" className="hover:text-emerald-500 transition-colors">Termos</a>
             <a href="#" className="hover:text-emerald-500 transition-colors">Privacidade</a>
             <a href="#" className="hover:text-emerald-500 transition-colors">Suporte</a>
           </div>
-          <p className="text-zinc-400 text-sm font-medium">SV23.03</p>
         </div>
       </footer>
     </div>
