@@ -8,6 +8,7 @@ import { z } from "zod";
 import { createServer as createViteServer } from "vite";
 import { supabase } from "./server/supabase";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -16,6 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PEPPER = process.env.PASSWORD_PEPPER || "default-pepper-for-dev-only";
+const JWT_SECRET = process.env.JWT_SECRET || "default-jwt-secret-for-dev-only";
 
 const hashPassword = async (password: string) => {
   return await bcrypt.hash(password + PEPPER, 10);
@@ -321,7 +323,12 @@ async function startServer() {
     if (user) {
       const { data: n8nSetting } = await supabase.from("global_settings").select("value").eq("key", "n8n_webhook_url").single();
       if (n8nSetting?.value) {
-        const resetLink = `${req.protocol}://${req.get('host')}/?action=reset&email=${user.email}`;
+        // Generate a secure token valid for 15 minutes
+        const token = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '15m' });
+        
+        const appUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+        const resetLink = `${appUrl}/?action=reset&token=${token}`;
+        
         await fetch(n8nSetting.value, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -338,21 +345,31 @@ async function startServer() {
   });
 
   app.post("/api/auth/reset-password", async (req, res) => {
-    const { email, newPassword } = req.body;
-    console.log(`Resetting password for ${email}`);
+    const { token, newPassword } = req.body;
     
-    const hashedPassword = await hashPassword(newPassword);
+    try {
+      // Verify token
+      const decoded = jwt.verify(token, JWT_SECRET) as { email: string };
+      const email = decoded.email;
+      
+      console.log(`Resetting password for ${email} via token`);
+      
+      const hashedPassword = await hashPassword(newPassword);
 
-    const { error } = await supabase
-      .from("users")
-      .update({ password: hashedPassword })
-      .eq("email", email);
+      const { error } = await supabase
+        .from("users")
+        .update({ password: hashedPassword })
+        .eq("email", email);
 
-    if (error) {
-      console.error("Reset password error:", error);
-      return res.status(400).json({ error: "Erro ao atualizar senha." });
+      if (error) {
+        console.error("Reset password error:", error);
+        return res.status(400).json({ error: "Erro ao atualizar senha." });
+      }
+      res.json({ success: true, message: "Senha atualizada com sucesso!" });
+    } catch (err) {
+      console.error("Invalid or expired token:", err);
+      return res.status(401).json({ error: "Link de recuperação inválido ou expirado." });
     }
-    res.json({ success: true, message: "Senha atualizada com sucesso!" });
   });
 
   app.get("/api/auth/check-user", async (req, res) => {
