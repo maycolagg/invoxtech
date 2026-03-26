@@ -11,7 +11,7 @@ import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, type Shop, type Service, type Booking, type User } from '../types';
 import toast from 'react-hot-toast';
-import { formatCPF, formatPhone } from '../utils/masks';
+import { formatCPF, formatPhone, validateCPF } from '../utils/masks';
 
 export default function BookingFlow({ shopId, user }: { shopId: number, user: User | null }) {
   const [step, setStep] = useState(1);
@@ -32,6 +32,7 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
   const [loading, setLoading] = useState(false);
   const [dateOffset, setDateOffset] = useState(0);
   const [showHoursModal, setShowHoursModal] = useState(false);
+  const [isCpfValid, setIsCpfValid] = useState(true);
 
   const paymentMethodLabels: Record<string, string> = {
     'money': 'DINHEIRO',
@@ -116,6 +117,11 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
   const handleBooking = async () => {
     if (!selectedService || !selectedTime) return;
     
+    if (formData.cpf && !validateCPF(formData.cpf)) {
+      toast.error('Por favor, informe um CPF válido.');
+      return;
+    }
+
     setLoading(true);
     const bookingData = {
       shop_id: shopId,
@@ -655,11 +661,25 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
                         <input 
                           type="text" 
                           placeholder="000.000.000-00"
-                          className="w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                          className={cn(
+                            "w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-all bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 disabled:opacity-50",
+                            !isCpfValid && formData.cpf.length >= 14 && "ring-2 ring-red-500"
+                          )}
                           value={formData.cpf}
-                          onChange={e => setFormData({...formData, cpf: formatCPF(e.target.value)})}
+                          onChange={e => {
+                            const val = formatCPF(e.target.value);
+                            setFormData({...formData, cpf: val});
+                            if (val.length >= 14) {
+                              setIsCpfValid(validateCPF(val));
+                            } else {
+                              setIsCpfValid(true);
+                            }
+                          }}
                           disabled={!!user}
                         />
+                        {!isCpfValid && formData.cpf.length >= 14 && (
+                          <p className="text-[10px] text-red-500 font-bold mt-1 ml-2">CPF Inválido</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -758,9 +778,10 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
               </button>
               <button 
                 disabled={
-                  userExists === true 
+                  (userExists === true 
                     ? !formData.password 
-                    : (!formData.name || !formData.phone || !formData.email || !formData.cpf || !formData.password)
+                    : (!formData.name || !formData.phone || !formData.email || !formData.cpf || !formData.password)) ||
+                  (formData.cpf.length >= 14 && !isCpfValid)
                 }
                 onClick={nextStep} 
                 className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-8 py-3 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50"
