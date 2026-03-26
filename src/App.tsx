@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { cn, type User, type Shop } from './types';
 import { motion, AnimatePresence } from 'motion/react';
-import { formatCPF, formatPhone } from './utils/masks';
+import { formatCPF, formatPhone, validateCPF } from './utils/masks';
 
 export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -46,6 +46,7 @@ export default function App() {
     phone: '',
     cpf: ''
   });
+  const [isCpfValid, setIsCpfValid] = useState(true);
 
   const toggleAuthMode = (mode: 'login' | 'register' | 'forgot') => {
     setAuthMode(mode);
@@ -178,6 +179,12 @@ export default function App() {
 
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (authMode === 'register' && !isCpfValid) {
+      toast.error('Por favor, informe um CPF válido.');
+      return;
+    }
+
     setLoading(true);
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
@@ -763,13 +770,25 @@ export default function App() {
                         name="cpf" 
                         required 
                         value={formValues.cpf}
-                        onChange={(e) => setFormValues({...formValues, cpf: formatCPF(e.target.value)})}
+                        onChange={(e) => {
+                          const val = formatCPF(e.target.value);
+                          setFormValues({...formValues, cpf: val});
+                          if (val.length >= 14) {
+                            setIsCpfValid(validateCPF(val));
+                          } else {
+                            setIsCpfValid(true); // Don't show error while typing
+                          }
+                        }}
                         className={cn(
                           "w-full px-4 py-4 rounded-2xl border-none outline-none transition-all",
-                          theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900"
+                          theme === 'dark' ? "bg-[#0a0a0c] text-white focus:ring-2 focus:ring-emerald-500" : "bg-zinc-100 text-zinc-900 focus:ring-2 focus:ring-zinc-900",
+                          !isCpfValid && formValues.cpf.length >= 14 && "ring-2 ring-red-500"
                         )} 
                         placeholder="000..." 
                       />
+                      {!isCpfValid && formValues.cpf.length >= 14 && (
+                        <p className="text-[10px] text-red-500 font-bold mt-1 ml-2">CPF Inválido</p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -863,13 +882,12 @@ export default function App() {
               theme === 'dark' ? "text-white" : "text-zinc-900"
             )}>{companyName}</span>
           </div>
-           <p className="text-zinc-400 text-sm font-medium">© 2026 <a href="https://instagram.com/invoxtech" target="_blank" className="text-emerald-500">{companyName}</a>. Todos os direitos reservados.</p>
+          <p className="text-zinc-400 text-sm font-medium">© 2026 {companyName}. Todos os direitos reservados.</p>
           <div className="flex gap-6 text-sm font-bold text-zinc-500">
             <a href="#" className="hover:text-emerald-500 transition-colors">Termos</a>
             <a href="#" className="hover:text-emerald-500 transition-colors">Privacidade</a>
             <a href="#" className="hover:text-emerald-500 transition-colors">Suporte</a>
           </div>
-          <p className="text-zinc-400 text-sm font-medium">SV23.03</p>
         </div>
       </footer>
     </div>
