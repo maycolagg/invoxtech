@@ -25,7 +25,7 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
     phone: '',
     cpf: '',
     password: '',
-    paymentMethod: 'money'
+    paymentMethod: ''
   });
   const [userExists, setUserExists] = useState<boolean | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
@@ -894,7 +894,7 @@ export default function BookingFlow({ shopId, user }: { shopId: number, user: Us
               <ul className="text-zinc-600 dark:text-zinc-400 text-sm space-y-1">
                 <li>• Você receberá um e-mail de confirmação</li>
                 <li>• Enviaremos um lembrete no seu WhatsApp</li>
-                <li>• O pagamento será feito na estética via {formData.paymentMethod}</li>
+                <li>• O pagamento será feito na estética via {paymentMethodLabels[formData.paymentMethod] || formData.paymentMethod}</li>
               </ul>
             </div>
             <div className="pt-8">
